@@ -3,6 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\Auth\AuthController;
+use App\Http\Controllers\Api\DeployController;
 
 /*
 |--------------------------------------------------------------------------
@@ -23,6 +24,10 @@ Route::prefix('auth')->group(function () {
     Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
     Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 });
+
+// Деплой (защищен токеном)
+Route::post('/deploy', [DeployController::class, 'deploy'])
+    ->middleware('deploy.token');
 
 // Защищенные роуты (только для авторизованных)
 Route::middleware('auth:sanctum')->group(function () {

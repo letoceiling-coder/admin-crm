@@ -1,0 +1,179 @@
+═══════════════════════════════════════════════════════════════
+  БЫСТРОЕ ИСПРАВЛЕНИЕ ПРОБЛЕМ 403/404
+═══════════════════════════════════════════════════════════════
+
+ПРОБЛЕМА:
+- 403 Forbidden на https://crm.neeklo.ru/
+- 404 Not Found на https://crm.neeklo.ru/api/deploy
+
+═══════════════════════════════════════════════════════════════
+  РЕШЕНИЕ 1: Проверка структуры через веб-интерфейс
+═══════════════════════════════════════════════════════════════
+
+1. Войдите в панель управления хостингом
+2. Откройте "File Manager" (Файловый менеджер)
+3. Перейдите в: ~/crm.neeklo.ru/public_html
+
+ПРОВЕРЬТЕ:
+✓ Есть ли папка "public"?
+✓ Есть ли файл "public/index.php"?
+✓ Есть ли файл ".htaccess" в корне public_html?
+✓ Есть ли файл "public/.htaccess"?
+
+═══════════════════════════════════════════════════════════════
+  РЕШЕНИЕ 2: Исправление через Terminal в панели управления
+═══════════════════════════════════════════════════════════════
+
+Если в панели есть Terminal/SSH Access, выполните:
+
+cd ~/crm.neeklo.ru/public_html
+
+# 1. Проверить структуру
+ls -la
+ls -la public/
+
+# 2. Если public/ НЕ существует - создать и переместить файлы
+# (но это маловероятно, если вы скопировали весь проект)
+
+# 3. Установить права
+chmod 755 .
+chmod 755 public
+chmod 644 .htaccess
+chmod 644 public/.htaccess
+chmod 644 public/index.php
+chmod -R 775 storage
+chmod -R 775 bootstrap/cache
+
+# 4. Проверить владельца
+chown -R dsc23ytp:dsc23ytp .
+
+═══════════════════════════════════════════════════════════════
+  РЕШЕНИЕ 3: Настройка DocumentRoot
+═══════════════════════════════════════════════════════════════
+
+ВАЖНО: Apache должен указывать на public/ директорию!
+
+В панели управления хостингом найдите:
+- "Domain Settings" или "Domain Management"
+- "Document Root" или "Web Root"
+- Установите: ~/crm.neeklo.ru/public_html/public
+
+ИЛИ если DocumentRoot уже указывает на public_html/, то:
+- Установите: ~/crm.neeklo.ru/public_html/public
+
+═══════════════════════════════════════════════════════════════
+  РЕШЕНИЕ 4: Если DocumentRoot нельзя изменить
+═══════════════════════════════════════════════════════════════
+
+Если DocumentRoot указывает на public_html/ и нельзя изменить:
+
+1. Удалите .htaccess из public_html/ (или переименуйте)
+2. Скопируйте содержимое public/ на уровень выше:
+
+Через Terminal:
+cd ~/crm.neeklo.ru/public_html
+cp -r public/* .
+cp public/.htaccess .
+
+3. Или создайте символическую ссылку (если поддерживается)
+
+═══════════════════════════════════════════════════════════════
+  РЕШЕНИЕ 5: Проверка через File Manager
+═══════════════════════════════════════════════════════════════
+
+1. Откройте File Manager
+2. Перейдите в ~/crm.neeklo.ru/public_html
+3. Проверьте наличие файлов:
+   - .htaccess (должен быть)
+   - public/index.php (должен быть)
+   - public/.htaccess (должен быть)
+
+4. Если файлов нет - загрузите их заново
+
+5. Установите права через File Manager:
+   - .htaccess → 644
+   - public/ → 755
+   - public/.htaccess → 644
+   - public/index.php → 644
+   - storage/ → 775
+   - bootstrap/cache/ → 775
+
+═══════════════════════════════════════════════════════════════
+  РЕШЕНИЕ 6: Создание правильного .htaccess
+═══════════════════════════════════════════════════════════════
+
+Если DocumentRoot указывает на public_html/public/:
+
+Создайте файл: ~/crm.neeklo.ru/public_html/public/.htaccess
+
+Содержимое:
+<IfModule mod_rewrite.c>
+    <IfModule mod_negotiation.c>
+        Options -MultiViews -Indexes
+    </IfModule>
+
+    RewriteEngine On
+
+    # Handle Authorization Header
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+    # Redirect Trailing Slashes If Not A Folder...
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_URI} (.+)/$
+    RewriteRule ^ %1 [L,R=301]
+
+    # Send Requests To Front Controller...
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^ index.php [L]
+</IfModule>
+
+═══════════════════════════════════════════════════════════════
+  ДИАГНОСТИКА: Команды для проверки
+═══════════════════════════════════════════════════════════════
+
+Через Terminal выполните:
+
+cd ~/crm.neeklo.ru/public_html
+
+# 1. Где мы находимся?
+pwd
+
+# 2. Что здесь есть?
+ls -la
+
+# 3. Есть ли public/?
+ls -la public/
+
+# 4. Есть ли .htaccess?
+ls -la .htaccess
+ls -la public/.htaccess
+
+# 5. Есть ли index.php?
+ls -la public/index.php
+
+# 6. Какие права?
+stat .
+stat public/
+stat .htaccess
+stat public/.htaccess
+
+# 7. Кто владелец?
+ls -ld .
+ls -ld public/
+
+═══════════════════════════════════════════════════════════════
+  САМОЕ ВЕРОЯТНОЕ РЕШЕНИЕ
+═══════════════════════════════════════════════════════════════
+
+1. В панели управления хостингом найдите настройки домена
+2. Найдите "Document Root" или "Web Root Directory"
+3. Установите: public_html/public
+   (или полный путь: /home/dsc23ytp/crm.neeklo.ru/public_html/public)
+
+4. Сохраните изменения
+5. Подождите 1-2 минуты (пока изменения применятся)
+6. Проверьте сайт: https://crm.neeklo.ru
+
+═══════════════════════════════════════════════════════════════

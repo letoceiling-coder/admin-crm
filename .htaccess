@@ -1,0 +1,33 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Перенаправление всех запросов в public директорию
+    # Исключаем уже запросы к public и существующие файлы/директории
+    RewriteCond %{REQUEST_URI} !^/public/
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^(.*)$ public/$1 [L]
+
+    # Перенаправление корневого запроса на public/index.php
+    RewriteCond %{REQUEST_URI} ^/$
+    RewriteRule ^(.*)$ public/index.php [L]
+</IfModule>
+
+# Запрет доступа к скрытым файлам и директориям
+<FilesMatch "^\.">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Запрет доступа к важным файлам конфигурации
+<FilesMatch "^(\.env|composer\.(json|lock)|package(-lock)?\.json|\.git|\.gitignore|\.gitattributes|artisan|install\.sh)">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Запрет доступа к директориям
+<IfModule mod_rewrite.c>
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteCond %{REQUEST_URI} !^/public/
+    RewriteRule ^(.*)$ public/index.php [L]
+</IfModule>

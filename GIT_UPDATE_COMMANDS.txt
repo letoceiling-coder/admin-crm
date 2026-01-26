@@ -1,0 +1,217 @@
+═══════════════════════════════════════════════════════════════
+  КОМАНДЫ ДЛЯ ОБНОВЛЕНИЯ ФАЙЛОВ ИЗ GIT НА СЕРВЕРЕ
+═══════════════════════════════════════════════════════════════
+
+┌─────────────────────────────────────────────────────────────┐
+│ ВАРИАНТ 1: Через Terminal в панели управления хостингом     │
+└─────────────────────────────────────────────────────────────┘
+
+1. Войдите в панель управления хостингом
+2. Откройте "Terminal" или "SSH Access"
+3. Выполните команды:
+
+cd ~/crm.neeklo.ru/public_html
+
+# Проверка текущего статуса
+git status
+
+# Проверка remote репозитория
+git remote -v
+
+# Если remote не настроен, добавьте:
+git remote add origin https://github.com/letoceiling-coder/admin-crm.git
+
+# Получить последние изменения из репозитория
+git fetch origin
+
+# Проверить текущую ветку
+git branch
+
+# Переключиться на main (если нужно)
+git checkout main
+# или
+git checkout -b main
+
+# Обновить файлы из репозитория (жесткий сброс)
+git reset --hard origin/main
+
+# Или если есть локальные изменения, которые нужно сохранить:
+git stash
+git pull origin main
+git stash pop
+
+# После обновления выполнить:
+composer install --no-dev --optimize-autoloader
+php artisan migrate --force
+php artisan config:clear
+php artisan cache:clear
+php artisan route:clear
+php artisan view:clear
+
+
+┌─────────────────────────────────────────────────────────────┐
+│ ВАРИАНТ 2: Через SSH (если есть доступ)                      │
+└─────────────────────────────────────────────────────────────┘
+
+ssh dsc23ytp@dragon
+
+cd ~/crm.neeklo.ru/public_html
+
+# Полная последовательность обновления:
+git fetch origin
+git reset --hard origin/main
+composer install --no-dev --optimize-autoloader
+php artisan migrate --force
+php artisan config:clear
+php artisan cache:clear
+
+
+┌─────────────────────────────────────────────────────────────┐
+│ ВАРИАНТ 3: Безопасное обновление (с сохранением изменений)  │
+└─────────────────────────────────────────────────────────────┘
+
+cd ~/crm.neeklo.ru/public_html
+
+# Сохранить локальные изменения
+git stash save "Backup before update $(date +%Y-%m-%d_%H-%M-%S)"
+
+# Получить обновления
+git fetch origin
+
+# Обновить файлы
+git reset --hard origin/main
+
+# Если нужно вернуть локальные изменения:
+# git stash pop
+
+
+┌─────────────────────────────────────────────────────────────┐
+│ ВАРИАНТ 4: Через deploy команду (рекомендуется)             │
+└─────────────────────────────────────────────────────────────┘
+
+На локальной машине:
+
+cd c:\OSPanel\domains\ADMIN-CRM\crm
+
+# Сначала закоммитить и отправить изменения
+git add .
+git commit -m "Обновление проекта"
+git push origin main
+
+# Затем выполнить deploy (автоматически обновит сервер)
+php artisan deploy
+
+# Или без сборки фронтенда
+php artisan deploy --skip-build
+
+
+┌─────────────────────────────────────────────────────────────┐
+│ ПОЛНАЯ ПОСЛЕДОВАТЕЛЬНОСТЬ ОБНОВЛЕНИЯ                        │
+└─────────────────────────────────────────────────────────────┘
+
+cd ~/crm.neeklo.ru/public_html
+
+# 1. Проверка git статуса
+git status
+
+# 2. Сохранение локальных изменений (если есть)
+git stash
+
+# 3. Получение обновлений
+git fetch origin main
+
+# 4. Обновление файлов
+git reset --hard origin/main
+
+# 5. Обновление зависимостей
+composer install --no-dev --optimize-autoloader
+
+# 6. Выполнение миграций
+php artisan migrate --force
+
+# 7. Очистка кешей
+php artisan config:clear
+php artisan cache:clear
+php artisan route:clear
+php artisan view:clear
+
+# 8. Оптимизация
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+
+# 9. Проверка
+git log -1
+php artisan --version
+
+
+┌─────────────────────────────────────────────────────────────┐
+│ ЕСЛИ GIT ЕЩЕ НЕ ИНИЦИАЛИЗИРОВАН НА СЕРВЕРЕ                  │
+└─────────────────────────────────────────────────────────────┘
+
+cd ~/crm.neeklo.ru/public_html
+
+# Инициализация git
+git init
+
+# Добавление remote
+git remote add origin https://github.com/letoceiling-coder/admin-crm.git
+
+# Получение кода
+git fetch origin
+
+# Переключение на main ветку
+git checkout -b main
+
+# Установка на последний коммит
+git reset --hard origin/main
+
+# Установка зависимостей
+composer install --no-dev --optimize-autoloader
+
+# Миграции
+php artisan migrate --force
+
+# Очистка кешей
+php artisan config:clear
+php artisan cache:clear
+
+
+┌─────────────────────────────────────────────────────────────┐
+│ РЕШЕНИЕ ПРОБЛЕМ                                              │
+└─────────────────────────────────────────────────────────────┘
+
+Проблема: "fatal: not a git repository"
+Решение:
+  git init
+  git remote add origin https://github.com/letoceiling-coder/admin-crm.git
+
+Проблема: "error: The following untracked working tree files would be overwritten"
+Решение:
+  git stash
+  git reset --hard origin/main
+
+Проблема: "Permission denied"
+Решение:
+  chmod -R 775 storage bootstrap/cache
+  chown -R dsc23ytp:dsc23ytp .
+
+Проблема: "git safe directory"
+Решение:
+  git config --global --add safe.directory ~/crm.neeklo.ru/public_html
+
+Проблема: "composer: command not found"
+Решение:
+  # Использовать полный путь или установить composer
+  /usr/local/bin/composer install --no-dev --optimize-autoloader
+  # или
+  php composer.phar install --no-dev --optimize-autoloader
+
+
+═══════════════════════════════════════════════════════════════
+  РЕКОМЕНДУЕМАЯ КОМАНДА (одной строкой)
+═══════════════════════════════════════════════════════════════
+
+cd ~/crm.neeklo.ru/public_html && git fetch origin && git reset --hard origin/main && composer install --no-dev --optimize-autoloader && php artisan migrate --force && php artisan config:clear && php artisan cache:clear
+
+═══════════════════════════════════════════════════════════════
