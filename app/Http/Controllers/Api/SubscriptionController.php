@@ -43,6 +43,14 @@ class SubscriptionController extends Controller
                 $status = $data['status'];
             }
             
+            // Логируем данные для отладки
+            Log::info('SubscriptionController: возвращаем данные из ADMIN', [
+                'has_login' => isset($data['login']),
+                'login' => $data['login'] ?? null,
+                'has_plan' => isset($data['plan']),
+                'plan' => $data['plan'] ?? null,
+            ]);
+            
             return response()->json([
                 'subscription' => [
                     'status' => $status,

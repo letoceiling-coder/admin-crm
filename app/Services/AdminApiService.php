@@ -168,6 +168,14 @@ class AdminApiService
 
             $data = $response->json('data');
             
+            // Логируем полученные данные для отладки
+            Log::info('AdminApiService: получены данные о подписке', [
+                'has_login' => isset($data['login']),
+                'login' => $data['login'] ?? null,
+                'has_plan' => isset($data['plan']),
+                'plan_name' => $data['plan']['name'] ?? null,
+            ]);
+            
             // Обновляем локальные настройки, если получены новые данные
             if ($data && isset($data['api_token'])) {
                 $token = $data['api_token'];

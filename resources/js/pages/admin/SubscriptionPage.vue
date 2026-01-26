@@ -241,6 +241,10 @@ const fetchSubscription = async () => {
     // Проверяем, что данные получены
     if (response.data && response.data.subscription) {
       subscription.value = response.data.subscription;
+      // Отладочная информация
+      console.log('Subscription data received:', response.data.subscription);
+      console.log('Login:', response.data.subscription.login);
+      console.log('Plan:', response.data.subscription.plan);
     } else {
       // Если данных нет, используем значения по умолчанию
       subscription.value = {
@@ -252,20 +256,23 @@ const fetchSubscription = async () => {
       };
       error.value = 'Информация о подписке не найдена';
     }
-  } catch (err) {
-    error.value = err.response?.data?.message || 'Не удалось загрузить информацию о подписке';
-    console.error('Error fetching subscription:', err);
-    // Устанавливаем значения по умолчанию при ошибке
-    subscription.value = {
-      status: 'pending',
-      api_token: null,
-      expires_at: null,
-      domain: null,
-      is_active: false,
-    };
-  } finally {
-    loading.value = false;
-  }
+    } catch (err) {
+      error.value = err.response?.data?.message || 'Не удалось загрузить информацию о подписке';
+      console.error('Error fetching subscription:', err);
+      console.error('Error response:', err.response?.data);
+      // Устанавливаем значения по умолчанию при ошибке
+      subscription.value = {
+        status: 'pending',
+        api_token: null,
+        expires_at: null,
+        domain: null,
+        login: null,
+        plan: null,
+        is_active: false,
+      };
+    } finally {
+      loading.value = false;
+    }
 };
 
 const refreshSubscription = () => {
