@@ -35,12 +35,18 @@ class SubscriptionController extends Controller
             // Используем данные из ADMIN
             $data = $adminData['data'];
             
-            // Определяем статус: если is_active = true, то статус = 'active'
-            $status = 'pending';
-            if (isset($data['is_active']) && $data['is_active'] === true) {
+            // Определяем статус на основе данных из ADMIN
+            // ADMIN уже проверил дату окончания и установил правильный статус
+            $status = $data['status'] ?? 'pending';
+            
+            // Если статус 'expired', то is_active должен быть false
+            if ($status === 'expired') {
+                $data['is_active'] = false;
+            }
+            
+            // Если is_active = true и статус не 'expired', то статус = 'active'
+            if (isset($data['is_active']) && $data['is_active'] === true && $status !== 'expired') {
                 $status = 'active';
-            } elseif (isset($data['status'])) {
-                $status = $data['status'];
             }
             
             // Логируем данные для отладки

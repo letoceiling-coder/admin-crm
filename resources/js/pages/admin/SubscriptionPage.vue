@@ -160,17 +160,21 @@ const statusText = computed(() => {
     return 'Неизвестно';
   }
   
-  // Если is_active = true, статус всегда 'active'
-  if (subscription.value.is_active === true) {
-    return 'Активна';
+  // Если статус 'expired', показываем "Истекла"
+  const status = subscription.value.status || 'pending';
+  if (status === 'expired') {
+    return 'Истекла';
   }
   
-  // Иначе используем статус из данных
-  const status = subscription.value.status || 'pending';
+  // Если is_active = true и статус не 'expired', статус всегда 'active'
+  if (subscription.value.is_active === true && status !== 'expired') {
+    return 'Активна';
+  }
   const statusMap = {
     active: 'Активна',
     pending: 'Ожидает активации',
     expired: 'Истекла',
+    inactive: 'Неактивна',
     cancelled: 'Отменена',
     rejected: 'Отклонена',
     not_found: 'Не найдена',
@@ -186,12 +190,17 @@ const statusClass = computed(() => {
   const isActive = subscription.value.is_active;
   const status = subscription.value.status || 'pending';
   
-  // Если is_active = true, показываем зеленый статус
-  if (isActive === true) {
+  // Если статус 'expired', показываем красный
+  if (status === 'expired') {
+    return 'bg-red-100 text-red-800';
+  }
+  
+  // Если is_active = true и статус не 'expired', показываем зеленый статус
+  if (isActive === true && status !== 'expired') {
     return 'bg-green-100 text-green-800';
   } else if (status === 'pending') {
     return 'bg-yellow-100 text-yellow-800';
-  } else if (status === 'expired' || status === 'cancelled' || status === 'rejected') {
+  } else if (status === 'cancelled' || status === 'rejected' || status === 'inactive') {
     return 'bg-red-100 text-red-800';
   }
   return 'bg-gray-100 text-gray-800';
