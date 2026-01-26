@@ -166,13 +166,26 @@ class AdminApiService
                 ];
             }
 
-            $data = $response->json('data');
+            $responseData = $response->json();
+            
+            // Проверяем структуру ответа
+            if (!isset($responseData['data'])) {
+                Log::error('AdminApiService: ответ ADMIN не содержит ключ "data"', [
+                    'response_keys' => array_keys($responseData),
+                    'full_response' => $responseData,
+                ]);
+                return ['success' => false, 'error' => 'Invalid response structure from ADMIN'];
+            }
+            
+            $data = $responseData['data'];
             
             // Логируем полученные данные для отладки
             Log::info('AdminApiService: получены данные о подписке', [
+                'data_keys' => array_keys($data),
                 'has_login' => isset($data['login']),
                 'login' => $data['login'] ?? null,
                 'has_plan' => isset($data['plan']),
+                'plan' => $data['plan'] ?? null,
                 'plan_name' => $data['plan']['name'] ?? null,
             ]);
             
