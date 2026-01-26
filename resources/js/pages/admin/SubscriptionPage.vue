@@ -19,68 +19,22 @@
     </div>
 
     <div v-else class="space-y-6">
-      <!-- Таблица с информацией о подписке -->
-      <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        <div class="overflow-x-auto">
-          <table class="w-full text-sm text-left">
-            <thead class="bg-gray-50 text-gray-600 uppercase">
-              <tr>
-                <th class="px-4 py-3 font-medium">Домен</th>
-                <th class="px-4 py-3 font-medium">Логин</th>
-                <th class="px-4 py-3 font-medium">План</th>
-                <th class="px-4 py-3 font-medium">Начало</th>
-                <th class="px-4 py-3 font-medium">Конец</th>
-                <th class="px-4 py-3 font-medium">Активность</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-200">
-              <tr class="bg-white hover:bg-gray-50 transition-colors">
-                <td class="px-4 py-3 font-medium text-gray-900">
-                  {{ subscription?.domain || 'Не указан' }}
-                </td>
-                <td class="px-4 py-3 text-gray-900">
-                  {{ subscription?.login || '—' }}
-                </td>
-                <td class="px-4 py-3 text-gray-900">
-                  {{ subscription?.plan?.name || subscription?.plan || '—' }}
-                </td>
-                <td class="px-4 py-3 text-gray-600">
-                  {{ formatDate(subscription?.subscription_start) }}
-                </td>
-                <td class="px-4 py-3 text-gray-600">
-                  {{ formatDate(subscription?.subscription_end || subscription?.expires_at) }}
-                </td>
-                <td class="px-4 py-3">
-                  <span
-                    :class="[
-                      'inline-flex rounded-full px-2 py-0.5 text-xs font-medium',
-                      subscription?.is_active
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-gray-100 text-gray-700',
-                    ]"
-                  >
-                    {{ subscription?.is_active ? 'Активен' : 'Неактивен' }}
-                  </span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Дополнительная информация -->
+      <!-- Статус подписки -->
       <div class="bg-white rounded-lg border border-gray-200 p-6">
-        <h2 class="text-lg font-semibold text-gray-900 mb-4">Дополнительная информация</h2>
-        
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-lg font-semibold text-gray-900">Статус подписки</h2>
+          <span
+            class="px-3 py-1 rounded-full text-sm font-medium"
+            :class="statusClass"
+          >
+            {{ statusText }}
+          </span>
+        </div>
+
         <div class="space-y-4">
           <div class="flex items-center justify-between py-2 border-b border-gray-100">
-            <span class="text-gray-600">Статус подписки:</span>
-            <span
-              class="px-3 py-1 rounded-full text-sm font-medium"
-              :class="statusClass"
-            >
-              {{ statusText }}
-            </span>
+            <span class="text-gray-600">Домен:</span>
+            <span class="font-medium text-gray-900">{{ subscription?.domain || 'Не указан' }}</span>
           </div>
 
           <div class="flex items-center justify-between py-2 border-b border-gray-100">
@@ -90,14 +44,55 @@
             </span>
           </div>
 
-          <div v-if="subscription?.subscription_end || subscription?.expires_at" class="flex items-center justify-between py-2">
+          <div class="flex items-center justify-between py-2">
             <span class="text-gray-600">Дата окончания:</span>
             <span class="font-medium text-gray-900">
-              {{ formatDate(subscription?.subscription_end || subscription?.expires_at) }}
-              <span v-if="isExpiringSoon" class="ml-2 text-orange-600 font-medium">
-                (истекает скоро)
-              </span>
+              {{ expiresAtText }}
             </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Информация о подписке -->
+      <div class="bg-white rounded-lg border border-gray-200 p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Детали подписки</h2>
+        
+        <div class="space-y-3">
+          <div class="flex items-start">
+            <svg class="h-5 w-5 text-blue-600 mr-3 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <div>
+              <p class="text-sm font-medium text-gray-900">Статус подписки</p>
+              <p class="text-sm text-gray-600 mt-1">
+                {{ subscription?.is_active ? 'Подписка активна' : 'Подписка неактивна или истекла' }}
+              </p>
+            </div>
+          </div>
+
+          <div v-if="subscription?.domain" class="flex items-start">
+            <svg class="h-5 w-5 text-blue-600 mr-3 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path>
+            </svg>
+            <div>
+              <p class="text-sm font-medium text-gray-900">Домен системы</p>
+              <p class="text-sm text-gray-600 mt-1">{{ subscription.domain }}</p>
+            </div>
+          </div>
+
+          <div v-if="subscription?.expires_at" class="flex items-start">
+            <svg class="h-5 w-5 text-blue-600 mr-3 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+            </svg>
+            <div>
+              <p class="text-sm font-medium text-gray-900">Срок действия</p>
+              <p class="text-sm text-gray-600 mt-1">
+                {{ formatDate(subscription?.expires_at) }}
+                <span v-if="isExpiringSoon" class="ml-2 text-orange-600 font-medium">
+                  (истекает скоро)
+                </span>
+              </p>
+            </div>
           </div>
         </div>
       </div>
@@ -128,11 +123,7 @@ const subscription = ref({
   status: 'pending',
   api_token: null,
   expires_at: null,
-  subscription_start: null,
-  subscription_end: null,
   domain: null,
-  login: null,
-  plan: null,
   is_active: false,
 });
 
@@ -171,29 +162,27 @@ const statusClass = computed(() => {
 });
 
 const expiresAtText = computed(() => {
-  const endDate = subscription.value?.subscription_end || subscription.value?.expires_at;
-  if (!endDate) {
+  if (!subscription.value || !subscription.value.expires_at) {
     return 'Не ограничен';
   }
-  return formatDate(endDate);
+  return formatDate(subscription.value.expires_at);
 });
 
 const isExpiringSoon = computed(() => {
-  const endDate = subscription.value?.subscription_end || subscription.value?.expires_at;
-  if (!endDate) return false;
-  const expiresAt = new Date(endDate);
+  if (!subscription.value || !subscription.value.expires_at) return false;
+  const expiresAt = new Date(subscription.value.expires_at);
   const now = new Date();
   const daysUntilExpiry = Math.ceil((expiresAt - now) / (1000 * 60 * 60 * 24));
   return daysUntilExpiry > 0 && daysUntilExpiry <= 30;
 });
 
 const formatDate = (dateString) => {
-  if (!dateString) return '—';
+  if (!dateString) return 'Не указано';
   const date = new Date(dateString);
   return date.toLocaleDateString('ru-RU', {
-    day: 'numeric',
-    month: 'short',
     year: 'numeric',
+    month: 'long',
+    day: 'numeric',
   });
 };
 
@@ -212,11 +201,7 @@ const fetchSubscription = async () => {
         status: 'pending',
         api_token: null,
         expires_at: null,
-        subscription_start: null,
-        subscription_end: null,
         domain: null,
-        login: null,
-        plan: null,
         is_active: false,
       };
       error.value = 'Информация о подписке не найдена';
@@ -229,11 +214,7 @@ const fetchSubscription = async () => {
       status: 'pending',
       api_token: null,
       expires_at: null,
-      subscription_start: null,
-      subscription_end: null,
       domain: null,
-      login: null,
-      plan: null,
       is_active: false,
     };
   } finally {

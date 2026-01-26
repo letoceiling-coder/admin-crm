@@ -61,10 +61,14 @@ class AdminApiService
             $expiresAt = $data['expires_at'] ?? null;
 
             if ($token) {
+                // Сохраняем токен в нескольких ключах для совместимости
+                Setting::set('api_token', $token);
                 Setting::set('admin_api_token', $token);
                 if ($expiresAt) {
+                    Setting::set('expires_at', $expiresAt);
                     Setting::set('admin_api_token_expires_at', $expiresAt);
                 }
+                Setting::set('subscription_status', 'pending');
                 Log::info('AdminApiService: заявка создана, токен сохранён', [
                     'domain' => $domain,
                     'application_id' => $data['id'] ?? null,
@@ -91,6 +95,110 @@ class AdminApiService
                 'message' => $e->getMessage(),
                 'domain' => $domain,
                 'email' => $email,
+            ]);
+
+            return ['success' => false, 'error' => $e->getMessage()];
+        }
+    }
+
+    /**
+     * Получить информацию о подписке из ADMIN
+     * 
+     * @param string|null $domain Домен CRM
+     * @param string|null $apiToken API токен подписки
+     * @return array{success: bool, data?: array, error?: string}
+     */
+    public function getSubscriptionInfo(?string $domain = null, ?string $apiToken = null): array
+    {
+        $baseUrl = config('integration.admin_api_url') ?: rtrim((string) env('APP_CRM_URL', ''), '/');
+        if (empty($baseUrl)) {
+            Log::warning('AdminApiService: APP_CRM_URL не задан, невозможно получить информацию о подписке');
+            return ['success' => false, 'error' => 'APP_CRM_URL not configured'];
+        }
+
+        // Если не указаны параметры, пытаемся получить из настроек
+        if (!$domain && !$apiToken) {
+            $domain = config('integration.crm_domain') 
+                ?: (parse_url(config('app.url', 'http://localhost'), PHP_URL_HOST) ?: 'localhost');
+            // Получаем полный токен (если он сохранен полностью, а не частично скрыт)
+            $savedToken = Setting::get('api_token') ?: Setting::get('admin_api_token');
+            // Используем токен только если он полный (не содержит ...)
+            if ($savedToken && strpos($savedToken, '...') === false && strlen($savedToken) > 20) {
+                $apiToken = $savedToken;
+            }
+        }
+
+        // URL должен быть /api/v1/subscription
+        $url = rtrim($baseUrl, '/') . '/v1/subscription';
+        $params = [];
+        if ($domain) {
+            $params['domain'] = $domain;
+        }
+        if ($apiToken) {
+            $params['api_token'] = $apiToken;
+        }
+
+        Log::info('AdminApiService: запрос информации о подписке', [
+            'url' => $url,
+            'domain' => $domain,
+            'has_token' => !empty($apiToken),
+        ]);
+
+        try {
+            $response = Http::timeout(15)
+                ->acceptJson()
+                ->get($url, $params);
+
+            if (!$response->successful()) {
+                $body = $response->json();
+                $msg = is_array($body) ? ($body['message'] ?? $response->body()) : $response->body();
+                Log::warning('AdminApiService: ADMIN вернул ошибку при запросе подписки', [
+                    'status' => $response->status(),
+                    'body' => $body,
+                ]);
+
+                return ['success' => false, 'error' => is_string($msg) ? $msg : json_encode($msg)];
+            }
+
+            $data = $response->json('data');
+            
+            // Обновляем локальные настройки, если получены новые данные
+            if ($data && isset($data['api_token'])) {
+                $token = $data['api_token'];
+                // Сохраняем полный токен только если он не скрыт
+                if (strpos($token, '...') === false && strlen($token) > 20) {
+                    Setting::set('api_token', $token);
+                    Setting::set('admin_api_token', $token);
+                }
+            }
+            
+            if ($data && isset($data['expires_at'])) {
+                Setting::set('expires_at', $data['expires_at']);
+            }
+            
+            if ($data && isset($data['subscription_end'])) {
+                Setting::set('expires_at', $data['subscription_end']);
+            }
+            
+            if ($data && isset($data['status'])) {
+                Setting::set('subscription_status', $data['status']);
+            }
+
+            return [
+                'success' => true,
+                'data' => $data,
+            ];
+        } catch (ConnectionException $e) {
+            Log::warning('AdminApiService: не удалось подключиться к ADMIN', [
+                'url' => $url,
+                'message' => $e->getMessage(),
+            ]);
+
+            return ['success' => false, 'error' => $e->getMessage()];
+        } catch (\Throwable $e) {
+            Log::error('AdminApiService: ошибка при получении информации о подписке', [
+                'url' => $url,
+                'message' => $e->getMessage(),
             ]);
 
             return ['success' => false, 'error' => $e->getMessage()];
