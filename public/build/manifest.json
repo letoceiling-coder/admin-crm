@@ -21,12 +21,12 @@
       "resources/js/pages/admin/DashboardPage.vue",
       "resources/js/pages/admin/SubscriptionPage.vue"
     ],
-    "file": "assets/app-c0b3ff30.js",
+    "file": "assets/app-da4764e1.js",
     "isEntry": true,
     "src": "resources/js/app.js"
   },
   "resources/js/layouts/AdminLayout.vue": {
-    "file": "assets/AdminLayout-d12d2fd6.js",
+    "file": "assets/AdminLayout-34ddc77b.js",
     "imports": [
       "resources/js/app.js"
     ],
@@ -34,7 +34,7 @@
     "src": "resources/js/layouts/AdminLayout.vue"
   },
   "resources/js/pages/HomePage.vue": {
-    "file": "assets/HomePage-a8431626.js",
+    "file": "assets/HomePage-d4eb8cf2.js",
     "imports": [
       "resources/js/app.js"
     ],
@@ -42,7 +42,7 @@
     "src": "resources/js/pages/HomePage.vue"
   },
   "resources/js/pages/admin/DashboardPage.vue": {
-    "file": "assets/DashboardPage-2470b0d6.js",
+    "file": "assets/DashboardPage-ea9c6759.js",
     "imports": [
       "resources/js/app.js"
     ],
@@ -50,7 +50,7 @@
     "src": "resources/js/pages/admin/DashboardPage.vue"
   },
   "resources/js/pages/admin/SubscriptionPage.vue": {
-    "file": "assets/SubscriptionPage-4941b343.js",
+    "file": "assets/SubscriptionPage-153cfe4e.js",
     "imports": [
       "resources/js/app.js"
     ],
@@ -58,7 +58,7 @@
     "src": "resources/js/pages/admin/SubscriptionPage.vue"
   },
   "resources/js/pages/admin/auth/ForgotPasswordPage.vue": {
-    "file": "assets/ForgotPasswordPage-e0c37c43.js",
+    "file": "assets/ForgotPasswordPage-2ff4e99c.js",
     "imports": [
       "resources/js/app.js"
     ],
@@ -66,7 +66,7 @@
     "src": "resources/js/pages/admin/auth/ForgotPasswordPage.vue"
   },
   "resources/js/pages/admin/auth/LoginPage.vue": {
-    "file": "assets/LoginPage-f3d98c19.js",
+    "file": "assets/LoginPage-1ba55aa8.js",
     "imports": [
       "resources/js/app.js"
     ],
@@ -74,7 +74,7 @@
     "src": "resources/js/pages/admin/auth/LoginPage.vue"
   },
   "resources/js/pages/admin/auth/RegisterPage.vue": {
-    "file": "assets/RegisterPage-19612dda.js",
+    "file": "assets/RegisterPage-6bda8883.js",
     "imports": [
       "resources/js/app.js"
     ],
@@ -82,7 +82,7 @@
     "src": "resources/js/pages/admin/auth/RegisterPage.vue"
   },
   "resources/js/pages/admin/auth/ResetPasswordPage.vue": {
-    "file": "assets/ResetPasswordPage-2d309a54.js",
+    "file": "assets/ResetPasswordPage-f83437ad.js",
     "imports": [
       "resources/js/app.js"
     ],

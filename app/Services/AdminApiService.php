@@ -155,9 +155,15 @@ class AdminApiService
                 Log::warning('AdminApiService: ADMIN вернул ошибку при запросе подписки', [
                     'status' => $response->status(),
                     'body' => $body,
+                    'url' => $url,
+                    'params' => $params,
                 ]);
 
-                return ['success' => false, 'error' => is_string($msg) ? $msg : json_encode($msg)];
+                return [
+                    'success' => false, 
+                    'error' => is_string($msg) ? $msg : json_encode($msg),
+                    'response_status' => $response->status(),
+                ];
             }
 
             $data = $response->json('data');
@@ -180,7 +186,10 @@ class AdminApiService
                 Setting::set('expires_at', $data['subscription_end']);
             }
             
-            if ($data && isset($data['status'])) {
+            // Определяем и сохраняем статус: если is_active = true, то статус = 'active'
+            if ($data && isset($data['is_active']) && $data['is_active'] === true) {
+                Setting::set('subscription_status', 'active');
+            } elseif ($data && isset($data['status'])) {
                 Setting::set('subscription_status', $data['status']);
             }
 

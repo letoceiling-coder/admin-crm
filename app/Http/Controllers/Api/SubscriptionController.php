@@ -35,9 +35,17 @@ class SubscriptionController extends Controller
             // Используем данные из ADMIN
             $data = $adminData['data'];
             
+            // Определяем статус: если is_active = true, то статус = 'active'
+            $status = 'pending';
+            if (isset($data['is_active']) && $data['is_active'] === true) {
+                $status = 'active';
+            } elseif (isset($data['status'])) {
+                $status = $data['status'];
+            }
+            
             return response()->json([
                 'subscription' => [
-                    'status' => $data['status'] ?? 'pending',
+                    'status' => $status,
                     'api_token' => $data['api_token'] ?? null,
                     'expires_at' => $data['expires_at'] ?? $data['subscription_end'] ?? null,
                     'subscription_start' => $data['subscription_start'] ?? null,
@@ -53,19 +61,26 @@ class SubscriptionController extends Controller
         // Если не удалось получить из ADMIN, используем локальные настройки
         Log::warning('SubscriptionController: не удалось получить данные из ADMIN, используются локальные настройки', [
             'error' => $adminData['error'] ?? 'unknown',
+            'response_status' => $adminData['response_status'] ?? null,
         ]);
 
         $apiToken = Setting::get('api_token') ?: Setting::get('admin_api_token');
         $expiresAt = Setting::get('expires_at') ?: Setting::get('admin_api_token_expires_at');
         $subscriptionStatus = Setting::get('subscription_status', 'pending');
+        
+        // Определяем is_active на основе токена и даты окончания
+        $isActive = !empty($apiToken) && (!empty($expiresAt) ? strtotime($expiresAt) > time() : true);
+        
+        // Если is_active = true, статус должен быть 'active'
+        $status = $isActive ? 'active' : $subscriptionStatus;
 
         return response()->json([
             'subscription' => [
-                'status' => $subscriptionStatus,
+                'status' => $status,
                 'api_token' => $apiToken ? (strlen($apiToken) > 13 ? substr($apiToken, 0, 10) . '...' : $apiToken) : null,
                 'expires_at' => $expiresAt,
                 'domain' => $domain,
-                'is_active' => !empty($apiToken) && (!empty($expiresAt) ? strtotime($expiresAt) > time() : true),
+                'is_active' => $isActive,
             ],
         ]);
     }
