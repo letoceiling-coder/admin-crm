@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\Auth\AuthController;
 use App\Http\Controllers\Api\DeployController;
+use App\Http\Controllers\Api\SubscriptionController;
 
 /*
 |--------------------------------------------------------------------------
@@ -36,6 +37,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Административные роуты (только для администраторов и менеджеров)
     Route::middleware('admin.access')->prefix('admin')->group(function () {
-        // Здесь будут роуты для админ-панели
+        // Информация о подписке
+        Route::get('/subscription', [SubscriptionController::class, 'index']);
     });
 });

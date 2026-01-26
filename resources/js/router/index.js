@@ -44,6 +44,12 @@ const routes = [
         component: () => import('../pages/admin/DashboardPage.vue'),
         meta: { title: 'Панель управления' },
       },
+      {
+        path: 'subscription',
+        name: 'admin.subscription',
+        component: () => import('../pages/admin/SubscriptionPage.vue'),
+        meta: { title: 'Подписка' },
+      },
     ],
   },
 ];
