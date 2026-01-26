@@ -42,12 +42,14 @@ class AuthController extends Controller
             ]);
         }
 
-        $request->session()->regenerate();
-
         $user = Auth::user()->load('role');
+        
+        // Создаем токен Sanctum для API вместо использования сессии
+        $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
             'user' => $user,
+            'token' => $token,
             'message' => 'Успешный вход в систему',
         ]);
     }
@@ -87,10 +89,8 @@ class AuthController extends Controller
 
             // Если ADMIN не ответил или произошла ошибка - откатываем регистрацию
             if (!$apiResult['success']) {
-                // Выходим из сессии
+                // Выходим из сессии (если была)
                 Auth::logout();
-                $request->session()->invalidate();
-                $request->session()->regenerateToken();
 
                 // Логируем ошибку
                 Log::error('CRM register: ошибка при отправке заявки в ADMIN, регистрация отменена', [
@@ -109,9 +109,13 @@ class AuthController extends Controller
                 ]);
             }
 
+            // Создаем токен Sanctum для API
+            $token = $user->createToken('auth_token')->plainTextToken;
+
             // Успешная регистрация
             return response()->json([
                 'user' => $user,
+                'token' => $token,
                 'message' => 'Регистрация успешна',
             ], 201);
         });
@@ -122,9 +126,12 @@ class AuthController extends Controller
      */
     public function logout(Request $request): JsonResponse
     {
-        Auth::guard('web')->logout();
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
+        // Удаляем текущий токен Sanctum
+        if ($request->user()) {
+            $request->user()->currentAccessToken()->delete();
+        } else {
+            Auth::guard('web')->logout();
+        }
 
         return response()->json(['message' => 'Успешный выход из системы']);
     }
