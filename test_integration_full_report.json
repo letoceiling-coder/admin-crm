@@ -1,0 +1,59 @@
+{
+    "timestamp": "2026-01-25 18:04:07",
+    "scenario": "Регистрация пользователя в CRM → создание заявки в ADMIN → сохранение токена",
+    "tests": [
+        {
+            "name": "CRM: Конфигурация APP_CRM_URL",
+            "status": "PASS",
+            "message": "APP_CRM_URL: http:\/\/admin.loc\/api\/v1",
+            "data": null
+        },
+        {
+            "name": "CRM: Таблица settings",
+            "status": "PASS",
+            "message": "Таблица settings существует",
+            "data": null
+        },
+        {
+            "name": "CRM: Доступность ADMIN API (ping)",
+            "status": "PASS",
+            "message": "ADMIN API доступен, БД: laravel_admin",
+            "data": null
+        },
+        {
+            "name": "CRM: Создание пользователя (email: integration_test_1769364247@crm.loc)",
+            "status": "PASS",
+            "message": "Пользователь создан, ID: 7",
+            "data": {
+                "user_id": 7
+            }
+        },
+        {
+            "name": "CRM: Отправка заявки в ADMIN через AdminApiService",
+            "status": "PASS",
+            "message": "Заявка отправлена, токен получен: pTBDgIVA...",
+            "data": {
+                "token_preview": "pTBDgIVA...",
+                "expires_at": "2026-01-28T18:04:07+00:00"
+            }
+        },
+        {
+            "name": "CRM: Токен сохранён в settings",
+            "status": "PASS",
+            "message": "Токен сохранён: pTBDgIVA...",
+            "data": {
+                "token_length": 64
+            }
+        },
+        {
+            "name": "CRM: ADMIN вернул успешный ответ (201)",
+            "status": "PASS",
+            "message": "ADMIN вернул 201, токен получен и сохранён",
+            "data": null
+        }
+    ],
+    "summary": {
+        "passed": 7,
+        "failed": 0
+    }
+}
