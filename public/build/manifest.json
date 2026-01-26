@@ -1,0 +1,83 @@
+{
+  "resources/css/app.css": {
+    "file": "assets/app-fceecfce.css",
+    "src": "resources/js/app.css"
+  },
+  "resources/js/app.css": {
+    "file": "assets/app-fceecfce.css",
+    "src": "resources/js/app.css"
+  },
+  "resources/js/app.js": {
+    "css": [
+      "assets/app-fceecfce.css"
+    ],
+    "dynamicImports": [
+      "resources/js/pages/HomePage.vue",
+      "resources/js/pages/admin/auth/LoginPage.vue",
+      "resources/js/pages/admin/auth/RegisterPage.vue",
+      "resources/js/pages/admin/auth/ForgotPasswordPage.vue",
+      "resources/js/pages/admin/auth/ResetPasswordPage.vue",
+      "resources/js/layouts/AdminLayout.vue",
+      "resources/js/pages/admin/DashboardPage.vue"
+    ],
+    "file": "assets/app-fb4ca583.js",
+    "isEntry": true,
+    "src": "resources/js/app.js"
+  },
+  "resources/js/layouts/AdminLayout.vue": {
+    "file": "assets/AdminLayout-801b7ad3.js",
+    "imports": [
+      "resources/js/app.js"
+    ],
+    "isDynamicEntry": true,
+    "src": "resources/js/layouts/AdminLayout.vue"
+  },
+  "resources/js/pages/HomePage.vue": {
+    "file": "assets/HomePage-92f3af18.js",
+    "imports": [
+      "resources/js/app.js"
+    ],
+    "isDynamicEntry": true,
+    "src": "resources/js/pages/HomePage.vue"
+  },
+  "resources/js/pages/admin/DashboardPage.vue": {
+    "file": "assets/DashboardPage-0874f975.js",
+    "imports": [
+      "resources/js/app.js"
+    ],
+    "isDynamicEntry": true,
+    "src": "resources/js/pages/admin/DashboardPage.vue"
+  },
+  "resources/js/pages/admin/auth/ForgotPasswordPage.vue": {
+    "file": "assets/ForgotPasswordPage-dcd3f186.js",
+    "imports": [
+      "resources/js/app.js"
+    ],
+    "isDynamicEntry": true,
+    "src": "resources/js/pages/admin/auth/ForgotPasswordPage.vue"
+  },
+  "resources/js/pages/admin/auth/LoginPage.vue": {
+    "file": "assets/LoginPage-02cdbd13.js",
+    "imports": [
+      "resources/js/app.js"
+    ],
+    "isDynamicEntry": true,
+    "src": "resources/js/pages/admin/auth/LoginPage.vue"
+  },
+  "resources/js/pages/admin/auth/RegisterPage.vue": {
+    "file": "assets/RegisterPage-66ad29a5.js",
+    "imports": [
+      "resources/js/app.js"
+    ],
+    "isDynamicEntry": true,
+    "src": "resources/js/pages/admin/auth/RegisterPage.vue"
+  },
+  "resources/js/pages/admin/auth/ResetPasswordPage.vue": {
+    "file": "assets/ResetPasswordPage-24b8159f.js",
+    "imports": [
+      "resources/js/app.js"
+    ],
+    "isDynamicEntry": true,
+    "src": "resources/js/pages/admin/auth/ResetPasswordPage.vue"
+  }
+}
