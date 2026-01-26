@@ -129,7 +129,15 @@ class AdminApiService
         }
 
         // URL должен быть /api/v1/subscription
-        $url = rtrim($baseUrl, '/') . '/v1/subscription';
+        // Проверяем, не содержит ли baseUrl уже /v1
+        $baseUrl = rtrim($baseUrl, '/');
+        if (str_ends_with($baseUrl, '/v1')) {
+            // Если baseUrl уже заканчивается на /v1, не добавляем еще раз
+            $url = $baseUrl . '/subscription';
+        } else {
+            // Если baseUrl не содержит /v1, добавляем его
+            $url = $baseUrl . '/v1/subscription';
+        }
         $params = [];
         if ($domain) {
             $params['domain'] = $domain;
@@ -167,6 +175,15 @@ class AdminApiService
             }
 
             $responseData = $response->json();
+            
+            // Проверяем, что ответ не пустой
+            if (!is_array($responseData)) {
+                Log::error('AdminApiService: ответ ADMIN не является массивом', [
+                    'response_body' => $response->body(),
+                    'response_status' => $response->status(),
+                ]);
+                return ['success' => false, 'error' => 'Invalid response from ADMIN: not an array'];
+            }
             
             // Проверяем структуру ответа
             if (!isset($responseData['data'])) {
