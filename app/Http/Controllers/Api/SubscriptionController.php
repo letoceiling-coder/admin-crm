@@ -51,6 +51,7 @@ class SubscriptionController extends Controller
                     'subscription_start' => $data['subscription_start'] ?? null,
                     'subscription_end' => $data['subscription_end'] ?? null,
                     'domain' => $data['domain'] ?? $domain,
+                    'login' => $data['login'] ?? null,
                     'is_active' => $data['is_active'] ?? false,
                     'plan' => $data['plan'] ?? null,
                     'application_id' => $data['application_id'] ?? null,
