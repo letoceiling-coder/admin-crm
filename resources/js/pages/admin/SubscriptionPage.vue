@@ -34,13 +34,13 @@
         <div class="space-y-4">
           <div class="flex items-center justify-between py-2 border-b border-gray-100">
             <span class="text-gray-600">Домен:</span>
-            <span class="font-medium text-gray-900">{{ subscription.domain || 'Не указан' }}</span>
+            <span class="font-medium text-gray-900">{{ subscription?.domain || 'Не указан' }}</span>
           </div>
 
           <div class="flex items-center justify-between py-2 border-b border-gray-100">
             <span class="text-gray-600">API токен:</span>
             <span class="font-mono text-sm text-gray-900">
-              {{ subscription.api_token || 'Не установлен' }}
+              {{ subscription?.api_token || 'Не установлен' }}
             </span>
           </div>
 
@@ -65,12 +65,12 @@
             <div>
               <p class="text-sm font-medium text-gray-900">Статус подписки</p>
               <p class="text-sm text-gray-600 mt-1">
-                {{ subscription.is_active ? 'Подписка активна' : 'Подписка неактивна или истекла' }}
+                {{ subscription?.is_active ? 'Подписка активна' : 'Подписка неактивна или истекла' }}
               </p>
             </div>
           </div>
 
-          <div v-if="subscription.domain" class="flex items-start">
+          <div v-if="subscription?.domain" class="flex items-start">
             <svg class="h-5 w-5 text-blue-600 mr-3 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path>
             </svg>
@@ -80,14 +80,14 @@
             </div>
           </div>
 
-          <div v-if="subscription.expires_at" class="flex items-start">
+          <div v-if="subscription?.expires_at" class="flex items-start">
             <svg class="h-5 w-5 text-blue-600 mr-3 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
             </svg>
             <div>
               <p class="text-sm font-medium text-gray-900">Срок действия</p>
               <p class="text-sm text-gray-600 mt-1">
-                {{ formatDate(subscription.expires_at) }}
+                {{ formatDate(subscription?.expires_at) }}
                 <span v-if="isExpiringSoon" class="ml-2 text-orange-600 font-medium">
                   (истекает скоро)
                 </span>
@@ -117,7 +117,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import axios from '@/api/axios';
+import apiClient from '@/api/axios';
 
 const subscription = ref({
   status: 'pending',
@@ -131,6 +131,9 @@ const loading = ref(false);
 const error = ref(null);
 
 const statusText = computed(() => {
+  if (!subscription.value || !subscription.value.status) {
+    return 'Неизвестно';
+  }
   const status = subscription.value.status;
   const statusMap = {
     active: 'Активна',
@@ -142,6 +145,9 @@ const statusText = computed(() => {
 });
 
 const statusClass = computed(() => {
+  if (!subscription.value || !subscription.value.status) {
+    return 'bg-gray-100 text-gray-800';
+  }
   const status = subscription.value.status;
   const isActive = subscription.value.is_active;
   
@@ -156,14 +162,14 @@ const statusClass = computed(() => {
 });
 
 const expiresAtText = computed(() => {
-  if (!subscription.value.expires_at) {
+  if (!subscription.value || !subscription.value.expires_at) {
     return 'Не ограничен';
   }
   return formatDate(subscription.value.expires_at);
 });
 
 const isExpiringSoon = computed(() => {
-  if (!subscription.value.expires_at) return false;
+  if (!subscription.value || !subscription.value.expires_at) return false;
   const expiresAt = new Date(subscription.value.expires_at);
   const now = new Date();
   const daysUntilExpiry = Math.ceil((expiresAt - now) / (1000 * 60 * 60 * 24));
@@ -185,11 +191,32 @@ const fetchSubscription = async () => {
   error.value = null;
 
   try {
-    const response = await axios.get('/api/admin/subscription');
-    subscription.value = response.data.subscription;
+    const response = await apiClient.get('/admin/subscription');
+    // Проверяем, что данные получены
+    if (response.data && response.data.subscription) {
+      subscription.value = response.data.subscription;
+    } else {
+      // Если данных нет, используем значения по умолчанию
+      subscription.value = {
+        status: 'pending',
+        api_token: null,
+        expires_at: null,
+        domain: null,
+        is_active: false,
+      };
+      error.value = 'Информация о подписке не найдена';
+    }
   } catch (err) {
     error.value = err.response?.data?.message || 'Не удалось загрузить информацию о подписке';
     console.error('Error fetching subscription:', err);
+    // Устанавливаем значения по умолчанию при ошибке
+    subscription.value = {
+      status: 'pending',
+      api_token: null,
+      expires_at: null,
+      domain: null,
+      is_active: false,
+    };
   } finally {
     loading.value = false;
   }
