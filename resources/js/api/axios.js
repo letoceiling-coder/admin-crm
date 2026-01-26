@@ -14,6 +14,11 @@ const apiClient = axios.create({
 // Перехватчик запросов
 apiClient.interceptors.request.use(
   (config) => {
+    // Добавляем токен Sanctum в заголовок Authorization
+    const token = localStorage.getItem('auth_token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
     // CSRF токен добавляется автоматически через cookies
     return config;
   },
@@ -32,6 +37,8 @@ apiClient.interceptors.response.use(
 
     // Обработка 401 (Unauthorized)
     if (response?.status === 401) {
+      // Удаляем невалидный токен
+      localStorage.removeItem('auth_token');
       // Перенаправление на страницу входа будет обработано в router
       console.error('Unauthorized: Authentication required');
     }

@@ -93,6 +93,11 @@ export const useAuthStore = defineStore('auth', () => {
 
       const response = await apiClient.post('/auth/login', credentials);
       user.value = response.data.user;
+      
+      // Сохраняем токен Sanctum
+      if (response.data.token) {
+        localStorage.setItem('auth_token', response.data.token);
+      }
 
       return { success: true };
     } catch (err) {
@@ -118,6 +123,11 @@ export const useAuthStore = defineStore('auth', () => {
 
       const response = await apiClient.post('/auth/register', userData);
       user.value = response.data.user;
+      
+      // Сохраняем токен Sanctum
+      if (response.data.token) {
+        localStorage.setItem('auth_token', response.data.token);
+      }
 
       return { success: true };
     } catch (err) {
@@ -150,11 +160,15 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       await apiClient.post('/logout');
       user.value = null;
+      // Удаляем токен из localStorage
+      localStorage.removeItem('auth_token');
       router.push('/admin/login');
     } catch (err) {
       console.error('Logout error:', err);
       // Даже при ошибке выхода очищаем состояние пользователя
       user.value = null;
+      // Удаляем токен из localStorage
+      localStorage.removeItem('auth_token');
       router.push('/admin/login');
     } finally {
       loading.value = false;
@@ -165,6 +179,13 @@ export const useAuthStore = defineStore('auth', () => {
    * Получить текущего пользователя
    */
   const fetchUser = async () => {
+    // Проверяем наличие токена перед запросом
+    const token = localStorage.getItem('auth_token');
+    if (!token) {
+      user.value = null;
+      return { success: false };
+    }
+
     loading.value = true;
     error.value = null;
 
@@ -173,6 +194,10 @@ export const useAuthStore = defineStore('auth', () => {
       user.value = response.data.user;
       return { success: true };
     } catch (err) {
+      // Если токен невалидный, удаляем его
+      if (err.response?.status === 401) {
+        localStorage.removeItem('auth_token');
+      }
       user.value = null;
       return { success: false };
     } finally {
