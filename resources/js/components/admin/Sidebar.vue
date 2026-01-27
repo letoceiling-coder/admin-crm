@@ -172,6 +172,55 @@
         </svg>
         <span v-if="!isCollapsed">Медиа</span>
       </router-link>
+      <!-- Заказы, Доставки, Платежи -->
+      <router-link
+        to="/admin/orders"
+        class="flex items-center rounded-xl text-sm font-medium transition-all px-4 py-3 gap-3"
+        :class="[
+          isCollapsed ? 'justify-center' : '',
+          route.name === 'admin.orders.index'
+            ? 'bg-gray-800 text-white' 
+            : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+        ]"
+        @click="handleMobileMenuClick"
+      >
+        <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+        </svg>
+        <span v-if="!isCollapsed">Заказы</span>
+      </router-link>
+      <router-link
+        to="/admin/deliveries"
+        class="flex items-center rounded-xl text-sm font-medium transition-all px-4 py-3 gap-3"
+        :class="[
+          isCollapsed ? 'justify-center' : '',
+          route.name === 'admin.deliveries.index'
+            ? 'bg-gray-800 text-white' 
+            : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+        ]"
+        @click="handleMobileMenuClick"
+      >
+        <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+        </svg>
+        <span v-if="!isCollapsed">Доставки</span>
+      </router-link>
+      <router-link
+        to="/admin/payments"
+        class="flex items-center rounded-xl text-sm font-medium transition-all px-4 py-3 gap-3"
+        :class="[
+          isCollapsed ? 'justify-center' : '',
+          route.name === 'admin.payments.index'
+            ? 'bg-gray-800 text-white' 
+            : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+        ]"
+        @click="handleMobileMenuClick"
+      >
+        <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
+        </svg>
+        <span v-if="!isCollapsed">Платежи</span>
+      </router-link>
     </nav>
     <div class="border-t border-gray-800 space-y-3 p-4">
       <div class="flex items-center gap-3 px-2" :class="isCollapsed ? 'justify-center' : ''">

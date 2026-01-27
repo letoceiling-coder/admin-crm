@@ -16,7 +16,8 @@ class ProductController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $query = Product::with(['category', 'unit', 'image', 'images']);
+        $user = $request->user();
+        $query = Product::where('user_id', $user->id)->with(['category', 'unit', 'image', 'images']);
 
         // Поиск
         if ($request->has('search') && $request->get('search')) {
@@ -77,6 +78,7 @@ class ProductController extends Controller
      */
     public function store(Request $request): JsonResponse
     {
+        $user = $request->user();
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'slug' => 'nullable|string|max:255|unique:products,slug',
@@ -112,13 +114,15 @@ class ProductController extends Controller
 
         // Устанавливаем позицию по умолчанию
         if (!isset($validated['position'])) {
-            $maxPosition = Product::max('position') ?? 0;
+            $maxPosition = Product::where('user_id', $user->id)->max('position') ?? 0;
             $validated['position'] = $maxPosition + 1;
         }
 
         // Извлекаем images из validated
         $images = $validated['images'] ?? [];
         unset($validated['images']);
+
+        $validated['user_id'] = $user->id;
 
         DB::beginTransaction();
         try {
@@ -149,8 +153,15 @@ class ProductController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Product $product): JsonResponse
+    public function show(Request $request, Product $product): JsonResponse
     {
+        $user = $request->user();
+        
+        // Проверяем, что товар принадлежит пользователю
+        if ($product->user_id !== $user->id) {
+            return response()->json(['message' => 'Доступ запрещен'], 403);
+        }
+
         $product->load(['category', 'unit', 'image', 'images']);
         return response()->json($product);
     }
@@ -160,6 +171,13 @@ class ProductController extends Controller
      */
     public function update(Request $request, Product $product): JsonResponse
     {
+        $user = $request->user();
+        
+        // Проверяем, что товар принадлежит пользователю
+        if ($product->user_id !== $user->id) {
+            return response()->json(['message' => 'Доступ запрещен'], 403);
+        }
+
         $validated = $request->validate([
             'name' => 'sometimes|required|string|max:255',
             'slug' => 'sometimes|nullable|string|max:255|unique:products,slug,' . $product->id,
@@ -229,8 +247,15 @@ class ProductController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Product $product): JsonResponse
+    public function destroy(Request $request, Product $product): JsonResponse
     {
+        $user = $request->user();
+        
+        // Проверяем, что товар принадлежит пользователю
+        if ($product->user_id !== $user->id) {
+            return response()->json(['message' => 'Доступ запрещен'], 403);
+        }
+
         $product->delete();
 
         return response()->json(['message' => 'Товар успешно удален']);

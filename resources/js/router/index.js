@@ -129,6 +129,25 @@ const routes = [
         component: () => import('../pages/admin/UnitFormPage.vue'),
         meta: { title: 'Редактирование единицы измерения' },
       },
+      // Заказы, Доставки, Платежи
+      {
+        path: 'orders',
+        name: 'admin.orders.index',
+        component: () => import('../pages/admin/OrdersPage.vue'),
+        meta: { title: 'Заказы' },
+      },
+      {
+        path: 'deliveries',
+        name: 'admin.deliveries.index',
+        component: () => import('../pages/admin/DeliveriesPage.vue'),
+        meta: { title: 'Доставки' },
+      },
+      {
+        path: 'payments',
+        name: 'admin.payments.index',
+        component: () => import('../pages/admin/PaymentsPage.vue'),
+        meta: { title: 'Платежи' },
+      },
     ],
   },
 ];

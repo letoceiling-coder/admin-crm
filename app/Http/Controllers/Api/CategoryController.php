@@ -16,7 +16,8 @@ class CategoryController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $query = Category::with(['parent', 'image']);
+        $user = $request->user();
+        $query = Category::where('user_id', $user->id)->with(['parent', 'image']);
 
         // Поиск
         if ($request->has('search') && $request->get('search')) {
@@ -71,6 +72,7 @@ class CategoryController extends Controller
      */
     public function store(Request $request): JsonResponse
     {
+        $user = $request->user();
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'slug' => 'nullable|string|max:255|unique:categories,slug',
@@ -95,11 +97,13 @@ class CategoryController extends Controller
 
         // Устанавливаем позицию по умолчанию
         if (!isset($validated['position'])) {
-            $maxPosition = Category::where('parent_id', $validated['parent_id'] ?? null)
+            $maxPosition = Category::where('user_id', $user->id)
+                ->where('parent_id', $validated['parent_id'] ?? null)
                 ->max('position') ?? 0;
             $validated['position'] = $maxPosition + 1;
         }
 
+        $validated['user_id'] = $user->id;
         $category = Category::create($validated);
         $category->load(['parent', 'image']);
 
@@ -109,8 +113,15 @@ class CategoryController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Category $category): JsonResponse
+    public function show(Request $request, Category $category): JsonResponse
     {
+        $user = $request->user();
+        
+        // Проверяем, что категория принадлежит пользователю
+        if ($category->user_id !== $user->id) {
+            return response()->json(['message' => 'Доступ запрещен'], 403);
+        }
+
         $category->load(['parent', 'image', 'children', 'products']);
         return response()->json($category);
     }
@@ -120,6 +131,13 @@ class CategoryController extends Controller
      */
     public function update(Request $request, Category $category): JsonResponse
     {
+        $user = $request->user();
+        
+        // Проверяем, что категория принадлежит пользователю
+        if ($category->user_id !== $user->id) {
+            return response()->json(['message' => 'Доступ запрещен'], 403);
+        }
+
         $validated = $request->validate([
             'name' => 'sometimes|required|string|max:255',
             'slug' => 'sometimes|nullable|string|max:255|unique:categories,slug,' . $category->id,
@@ -151,8 +169,15 @@ class CategoryController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Category $category): JsonResponse
+    public function destroy(Request $request, Category $category): JsonResponse
     {
+        $user = $request->user();
+        
+        // Проверяем, что категория принадлежит пользователю
+        if ($category->user_id !== $user->id) {
+            return response()->json(['message' => 'Доступ запрещен'], 403);
+        }
+
         // Проверяем, есть ли дочерние категории или товары
         if ($category->children()->count() > 0) {
             return response()->json([

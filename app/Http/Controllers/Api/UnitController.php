@@ -15,7 +15,8 @@ class UnitController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $query = Unit::query();
+        $user = $request->user();
+        $query = Unit::where('user_id', $user->id);
 
         // Поиск
         if ($request->has('search') && $request->get('search')) {
@@ -59,6 +60,7 @@ class UnitController extends Controller
      */
     public function store(Request $request): JsonResponse
     {
+        $user = $request->user();
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'short_name' => 'required|string|max:50',
@@ -68,10 +70,11 @@ class UnitController extends Controller
 
         // Устанавливаем позицию по умолчанию
         if (!isset($validated['position'])) {
-            $maxPosition = Unit::max('position') ?? 0;
+            $maxPosition = Unit::where('user_id', $user->id)->max('position') ?? 0;
             $validated['position'] = $maxPosition + 1;
         }
 
+        $validated['user_id'] = $user->id;
         $unit = Unit::create($validated);
 
         return response()->json($unit, 201);
@@ -80,8 +83,15 @@ class UnitController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Unit $unit): JsonResponse
+    public function show(Request $request, Unit $unit): JsonResponse
     {
+        $user = $request->user();
+        
+        // Проверяем, что единица измерения принадлежит пользователю
+        if ($unit->user_id !== $user->id) {
+            return response()->json(['message' => 'Доступ запрещен'], 403);
+        }
+
         return response()->json($unit);
     }
 
@@ -90,6 +100,13 @@ class UnitController extends Controller
      */
     public function update(Request $request, Unit $unit): JsonResponse
     {
+        $user = $request->user();
+        
+        // Проверяем, что единица измерения принадлежит пользователю
+        if ($unit->user_id !== $user->id) {
+            return response()->json(['message' => 'Доступ запрещен'], 403);
+        }
+
         $validated = $request->validate([
             'name' => 'sometimes|required|string|max:255',
             'short_name' => 'sometimes|required|string|max:50',
@@ -124,6 +141,7 @@ class UnitController extends Controller
      */
     public function updatePositions(Request $request): JsonResponse
     {
+        $user = $request->user();
         $request->validate([
             'units' => 'required|array',
             'units.*.id' => 'required|exists:units,id',
@@ -134,9 +152,13 @@ class UnitController extends Controller
             DB::beginTransaction();
 
             foreach ($request->units as $unitData) {
-                Unit::where('id', $unitData['id'])->update([
-                    'position' => $unitData['position']
-                ]);
+                // Проверяем, что единица измерения принадлежит пользователю
+                $unit = Unit::find($unitData['id']);
+                if ($unit && $unit->user_id === $user->id) {
+                    $unit->update([
+                        'position' => $unitData['position']
+                    ]);
+                }
             }
 
             DB::commit();

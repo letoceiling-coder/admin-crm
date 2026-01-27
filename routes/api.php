@@ -11,6 +11,9 @@ use App\Http\Controllers\Api\v1\MediaController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\UnitController;
+use App\Http\Controllers\Api\OrderController;
+use App\Http\Controllers\Api\DeliveryController;
+use App\Http\Controllers\Api\PaymentController;
 
 /*
 |--------------------------------------------------------------------------
@@ -66,6 +69,11 @@ Route::middleware('auth:sanctum')->group(function () {
         // Единицы измерения
         Route::post('units/update-positions', [UnitController::class, 'updatePositions']);
         Route::apiResource('units', UnitController::class);
+
+        // Управление заказами, доставками и платежами
+        Route::apiResource('orders', OrderController::class);
+        Route::apiResource('deliveries', DeliveryController::class);
+        Route::apiResource('payments', PaymentController::class);
     });
 
     // Media API (v1)
