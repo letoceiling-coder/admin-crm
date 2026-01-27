@@ -203,14 +203,31 @@ class PirogiSeeder extends Seeder
             // Обновляем питательные вещества, если товар уже существовал
             if ($product->wasRecentlyCreated === false) {
                 $updateData = [];
-                if (isset($nutritionalData['weight'])) $updateData['weight'] = $nutritionalData['weight'];
-                if (isset($nutritionalData['protein'])) $updateData['protein'] = $nutritionalData['protein'];
-                if (isset($nutritionalData['fat'])) $updateData['fat'] = $nutritionalData['fat'];
-                if (isset($nutritionalData['carbs'])) $updateData['carbs'] = $nutritionalData['carbs'];
-                if (isset($nutritionalData['calories'])) $updateData['calories'] = $nutritionalData['calories'];
                 
+                // Добавляем поля только если они есть в данных (не null)
+                if (isset($nutritionalData['weight']) && $nutritionalData['weight'] !== null) {
+                    $updateData['weight'] = $nutritionalData['weight'];
+                }
+                if (isset($nutritionalData['protein']) && $nutritionalData['protein'] !== null) {
+                    $updateData['protein'] = $nutritionalData['protein'];
+                }
+                if (isset($nutritionalData['fat']) && $nutritionalData['fat'] !== null) {
+                    $updateData['fat'] = $nutritionalData['fat'];
+                }
+                if (isset($nutritionalData['carbs']) && $nutritionalData['carbs'] !== null) {
+                    $updateData['carbs'] = $nutritionalData['carbs'];
+                }
+                if (isset($nutritionalData['calories']) && $nutritionalData['calories'] !== null) {
+                    $updateData['calories'] = $nutritionalData['calories'];
+                }
+                
+                // Обновляем если есть данные для обновления
                 if (!empty($updateData)) {
                     $product->update($updateData);
+                    $this->command->info("  → Обновлены питательные вещества: " . implode(', ', array_keys($updateData)));
+                } else {
+                    // Логируем, что данных нет (только для отладки, можно убрать)
+                    // $this->command->warn("  → Данные о питательных веществах отсутствуют в JSON");
                 }
             }
 
