@@ -531,6 +531,16 @@ export default {
 .cropper {
   width: 100%;
   height: 500px;
-  background: #f0f0f0;
+  background: #ffffff;
+}
+
+/* Белый фон для области обрезки */
+.cropper :deep(.vue-advanced-cropper__background) {
+  background: #ffffff !important;
+}
+
+/* Белый фон для контейнера */
+.cropper :deep(.vue-advanced-cropper__boundaries) {
+  background: #ffffff !important;
 }
 </style>

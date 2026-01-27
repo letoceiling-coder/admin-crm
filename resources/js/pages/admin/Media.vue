@@ -693,7 +693,7 @@
 
   <!-- Move File Modal -->
   <div v-if="showMoveModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
-    <div class="bg-background border border-border rounded-lg shadow-2xl w-full max-w-md p-6">
+    <div class="bg-white border border-border rounded-lg shadow-2xl w-full max-w-md p-6">
       <h3 class="text-lg font-semibold mb-4">Переместить файл</h3>
       <p v-if="selectedFileForMove" class="text-sm text-muted-foreground mb-4">
         {{ selectedFileForMove.original_name }}
@@ -701,7 +701,7 @@
       
       <div class="mb-4">
         <label class="text-sm font-medium mb-2 block">Выберите папку</label>
-        <div class="border border-border rounded-lg max-h-96 overflow-y-auto bg-muted/30">
+        <div class="border border-border rounded-lg max-h-96 overflow-y-auto bg-white">
           <div class="p-2">
             <!-- Корневая папка -->
             <button
