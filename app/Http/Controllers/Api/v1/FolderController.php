@@ -190,7 +190,20 @@ class FolderController extends Controller
     public function store(StoreFolderRequest $request): AnonymousResourceCollection
     {
         try {
-            $folder = Folder::create($request->validated());
+            // Получаем валидированные данные
+            $validated = $request->validated();
+            
+            // Устанавливаем user_id текущего пользователя (если авторизован)
+            // Системные папки создаются с user_id = NULL, пользовательские - с user_id текущего пользователя
+            if (auth()->check()) {
+                $validated['user_id'] = auth()->id();
+            }
+            
+            // Защищенные папки могут создавать только системные (user_id = NULL)
+            // Пользовательские папки всегда незащищенные
+            $validated['protected'] = false;
+            
+            $folder = Folder::create($validated);
 
             // Возвращаем все папки того же уровня для обновления списка
             $query = Folder::with('children')
@@ -291,6 +304,24 @@ class FolderController extends Controller
     {
         $folder = Folder::findOrFail($id);
 
+        // Проверяем, что пользователь может изменять только свои папки
+        // Системные папки (user_id = NULL) нельзя изменять
+        if (auth()->check()) {
+            if ($folder->user_id === null) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Нельзя изменить системную папку'
+                ], 403);
+            }
+            
+            if ($folder->user_id !== auth()->id()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Нельзя изменить папку другого пользователя'
+                ], 403);
+            }
+        }
+
         $validated = $request->validate([
             'name' => 'sometimes|string|max:255',
             'parent_id' => 'nullable|exists:folders,id',
@@ -367,6 +398,24 @@ class FolderController extends Controller
                     ], 422);
                 }
                 
+                // Проверяем, что пользователь может безвозвратно удалять только свои папки
+                // Системные папки (user_id = NULL) нельзя удалять
+                if (auth()->check()) {
+                    if ($folder->user_id === null) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Нельзя безвозвратно удалить системную папку'
+                        ], 403);
+                    }
+                    
+                    if ($folder->user_id !== auth()->id()) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Нельзя безвозвратно удалить папку другого пользователя'
+                        ], 403);
+                    }
+                }
+                
                 // Безвозвратное удаление
                 DB::beginTransaction();
                 
@@ -438,6 +487,24 @@ class FolderController extends Controller
                     'success' => false,
                     'message' => 'Нельзя удалить корзину'
                 ], 403);
+            }
+
+            // Проверяем, что пользователь может удалять только свои папки
+            // Системные папки (user_id = NULL) нельзя удалять
+            if (auth()->check()) {
+                if ($folder->user_id === null) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Нельзя удалить системную папку'
+                    ], 403);
+                }
+                
+                if ($folder->user_id !== auth()->id()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Нельзя удалить папку другого пользователя'
+                    ], 403);
+                }
             }
 
             // Получаем папку корзины

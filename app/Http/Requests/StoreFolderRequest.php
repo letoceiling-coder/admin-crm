@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreFolderRequest extends FormRequest
 {
@@ -21,10 +22,30 @@ class StoreFolderRequest extends FormRequest
      */
     public function rules(): array
     {
+        $userId = auth()->check() ? auth()->id() : null;
+        $parentId = $this->input('parent_id');
+        
+        // Правило уникальности: имя должно быть уникальным в рамках одной папки (parent_id) и одного пользователя
+        // Системные папки (user_id = NULL) могут иметь одинаковые имена с пользовательскими
+        $uniqueRule = Rule::unique('folders', 'name')
+            ->where(function ($query) use ($parentId, $userId) {
+                if ($parentId) {
+                    $query->where('parent_id', $parentId);
+                } else {
+                    $query->whereNull('parent_id');
+                }
+                
+                if ($userId) {
+                    $query->where('user_id', $userId);
+                } else {
+                    $query->whereNull('user_id');
+                }
+            });
+        
         return [
-            'name' => ['required','unique:folders,name','string','max:255'],
+            'name' => ['required', $uniqueRule, 'string', 'max:255'],
             'slug' => ['nullable'],
-            'parent_id' => ['nullable','int'],
+            'parent_id' => ['nullable', 'int'],
 
         ];
     }

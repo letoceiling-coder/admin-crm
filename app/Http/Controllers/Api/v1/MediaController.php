@@ -245,11 +245,29 @@ class MediaController extends Controller
             // Дополнительная проверка через модель Folder
             if ($folderId) {
                 $targetFolder = Folder::find($folderId);
-                if ($targetFolder && $targetFolder->is_trash) {
+                if (!$targetFolder) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Папка не найдена.'
+                    ], 404);
+                }
+                
+                if ($targetFolder->is_trash) {
                     return response()->json([
                         'success' => false,
                         'message' => 'Нельзя загружать файлы в корзину.'
                     ], 403);
+                }
+                
+                // Проверяем, что пользователь может загружать файлы только в свои папки или системные
+                if (auth()->check()) {
+                    // Системные папки (user_id = NULL) доступны всем
+                    if ($targetFolder->user_id !== null && $targetFolder->user_id !== auth()->id()) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Нельзя загружать файлы в папку другого пользователя.'
+                        ], 403);
+                    }
                 }
             }
 
@@ -446,6 +464,24 @@ class MediaController extends Controller
     {
         $media = Media::findOrFail($id);
 
+        // Проверяем, что пользователь может изменять только свои файлы
+        // Системные файлы (user_id = NULL) нельзя изменять
+        if (auth()->check()) {
+            if ($media->user_id === null) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Нельзя изменить системный файл'
+                ], 403);
+            }
+            
+            if ($media->user_id !== auth()->id()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Нельзя изменить файл другого пользователя'
+                ], 403);
+            }
+        }
+
         $request->validate([
             'folder_id' => 'nullable|exists:folders,id',
             'file' => 'nullable|file|max:10240' // 10MB, для замены файла
@@ -563,6 +599,35 @@ class MediaController extends Controller
                 (is_null($newFolderId) && !is_null($currentFolderId)) || 
                 (!is_null($newFolderId) && is_null($currentFolderId))) {
                 
+                // Проверяем доступ к целевой папке
+                if ($newFolderId) {
+                    $targetFolder = Folder::find($newFolderId);
+                    if (!$targetFolder) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Целевая папка не найдена'
+                        ], 404);
+                    }
+                    
+                    if ($targetFolder->is_trash) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Нельзя перемещать файлы в корзину. Используйте функцию удаления.'
+                        ], 403);
+                    }
+                    
+                    // Проверяем, что пользователь может перемещать файлы только в свои папки или системные
+                    if (auth()->check()) {
+                        // Системные папки (user_id = NULL) доступны всем
+                        if ($targetFolder->user_id !== null && $targetFolder->user_id !== auth()->id()) {
+                            return response()->json([
+                                'success' => false,
+                                'message' => 'Нельзя перемещать файлы в папку другого пользователя.'
+                            ], 403);
+                        }
+                    }
+                }
+                
                 $oldPath = public_path($media->disk . '/' . $media->name);
 
                 // Определяем новый путь
@@ -657,6 +722,24 @@ class MediaController extends Controller
     {
         try {
             $media = Media::findOrFail($id);
+            
+            // Проверяем, что пользователь может удалять только свои файлы
+            // Системные файлы (user_id = NULL) нельзя удалять
+            if (auth()->check()) {
+                if ($media->user_id === null) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Нельзя удалить системный файл'
+                    ], 403);
+                }
+                
+                if ($media->user_id !== auth()->id()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Нельзя удалить файл другого пользователя'
+                    ], 403);
+                }
+            }
             
             // Получаем папку корзины
             $trashFolder = Folder::getTrashFolder();

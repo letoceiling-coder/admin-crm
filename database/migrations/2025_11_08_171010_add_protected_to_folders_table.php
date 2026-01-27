@@ -18,8 +18,10 @@ return new class extends Migration
         });
         
         // Устанавливаем защиту для системных папок (id 1-4)
+        // Системные папки должны быть с user_id = NULL (доступны всем) и protected = true (нельзя удалить)
         DB::table('folders')->whereIn('id', [1, 2, 3, 4])->update([
-            'protected' => true,
+            'user_id' => null, // Системные папки доступны всем пользователям
+            'protected' => true, // Нельзя удалить
             'is_trash' => DB::raw('CASE WHEN id = 4 THEN 1 ELSE 0 END')
         ]);
     }

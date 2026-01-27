@@ -46,6 +46,9 @@ return new class extends Migration {
         foreach ($folders as $folder) {
             Folder::create($folder);
         }
+        
+        // Обновляем системные папки после создания колонок user_id и protected
+        // Это будет сделано в миграции add_protected_to_folders_table.php
 
 
     }
