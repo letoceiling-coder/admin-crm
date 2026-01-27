@@ -45,15 +45,21 @@ export function CatalogPage() {
       try {
         const settings = await deliverySettingsApi.getSettings(shopId);
         
+        // Загружаем минимальный заказ
         if (settings.min_delivery_order_total_rub !== undefined && settings.min_delivery_order_total_rub !== null) {
-          setMinDeliveryTotal(Number(settings.min_delivery_order_total_rub));
+          const minTotal = Number(settings.min_delivery_order_total_rub);
+          setMinDeliveryTotal(minTotal);
         }
 
+        // Загружаем порог бесплатной доставки
         const thresholdValue = settings.free_delivery_threshold;
-        const currentMinTotal = Number(settings.min_delivery_order_total_rub || minDeliveryTotal || 3000);
+        // Используем значение из настроек, а не из состояния, чтобы избежать проблем с зависимостями
+        const currentMinTotal = Number(settings.min_delivery_order_total_rub || 3000);
         
         if (thresholdValue !== undefined && thresholdValue !== null) {
           const threshold = Number(thresholdValue);
+          
+          // freeDeliveryThreshold должен быть положительным и строго больше минимального заказа
           if (!isNaN(threshold) && threshold > 0 && threshold > currentMinTotal) {
             setFreeDeliveryThreshold(threshold);
           } else {
