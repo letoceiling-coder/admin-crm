@@ -9,7 +9,7 @@
       <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
     </div>
 
-    <div v-else-if="error" class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+    <div v-if="error" class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
       <div class="flex items-center">
         <svg class="h-5 w-5 text-red-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -18,7 +18,7 @@
       </div>
     </div>
 
-    <form v-else @submit.prevent="submitForm" class="space-y-6">
+    <form v-if="!loading" @submit.prevent="submitForm" class="space-y-6">
       <!-- Фото по умолчанию -->
       <div class="bg-white rounded-lg border border-gray-200 p-6">
         <h2 class="text-lg font-semibold text-gray-900 mb-4">Фото по умолчанию</h2>

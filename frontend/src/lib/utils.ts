@@ -43,8 +43,8 @@ async function getDefaultImageUrl(): Promise<string | null> {
  */
 export function getImageUrl(image?: { path?: string; url?: string }): string {
   if (!image) {
-    // Если изображения нет, возвращаем placeholder, который будет заменен на фото по умолчанию при ошибке
-    return '/placeholder.jpg';
+    // Если изображения нет, возвращаем no-image.png
+    return '/system/no-image.png';
   }
   if (image.url) return image.url;
   if (image.path) {
@@ -54,7 +54,7 @@ export function getImageUrl(image?: { path?: string; url?: string }): string {
     }
     return `${import.meta.env.VITE_API_BASE_URL || 'https://crm.neeklo.ru'}/storage/${image.path}`;
   }
-  return '/placeholder.jpg';
+  return '/system/no-image.png';
 }
 
 /**
@@ -66,7 +66,7 @@ export function getDefaultImageUrlSync(): string | null {
 
 /**
  * Обработчик ошибки загрузки изображения
- * Заменяет изображение на фото по умолчанию
+ * Заменяет изображение на фото по умолчанию из настроек или no-image.png
  */
 export async function handleImageError(
   event: React.SyntheticEvent<HTMLImageElement, Event>,
@@ -74,13 +74,13 @@ export async function handleImageError(
 ): Promise<void> {
   const img = event.currentTarget;
   
-  // Если уже пытаемся загрузить фото по умолчанию, не делаем ничего
-  if (img.src === defaultImageUrl || img.src.includes('placeholder.jpg')) {
+  // Если уже пытаемся загрузить фото по умолчанию или no-image.png, не делаем ничего
+  if (img.src === defaultImageUrl || img.src.includes('no-image.png') || img.src.includes('placeholder.jpg')) {
     return;
   }
 
-  // Пытаемся получить фото по умолчанию
-  const defaultUrl = fallbackUrl || await getDefaultImageUrl() || '/placeholder.jpg';
+  // Пытаемся получить фото по умолчанию из настроек
+  const defaultUrl = fallbackUrl || await getDefaultImageUrl() || '/system/no-image.png';
   
   if (img.src !== defaultUrl) {
     img.src = defaultUrl;

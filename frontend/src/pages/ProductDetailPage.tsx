@@ -54,7 +54,7 @@ export function ProductDetailPage() {
     ? product.images.map(img => getImageUrl(img))
     : product.image
     ? [getImageUrl(product.image)]
-    : ['/placeholder.jpg'];
+    : ['/system/no-image.png'];
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-amber-50 via-orange-50 to-red-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 pb-20 overflow-x-hidden">
