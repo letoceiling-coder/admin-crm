@@ -18,6 +18,11 @@ class Product extends Model
         'description',
         'sku',
         'price',
+        'weight',
+        'protein',
+        'fat',
+        'carbs',
+        'calories',
         'category_id',
         'unit_id',
         'image_id',
@@ -29,6 +34,11 @@ class Product extends Model
 
     protected $casts = [
         'price' => 'decimal:2',
+        'weight' => 'integer',
+        'protein' => 'decimal:2',
+        'fat' => 'decimal:2',
+        'carbs' => 'decimal:2',
+        'calories' => 'integer',
         'stock' => 'integer',
         'position' => 'integer',
         'is_active' => 'boolean',

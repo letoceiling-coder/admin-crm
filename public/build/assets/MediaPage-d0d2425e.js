@@ -1,0 +1,1 @@
+import{M as e}from"./Media-745f3a30.js";import{o as a,A as o}from"./app-e9b8a5d0.js";import"./sweetalert2.esm.all-3fe0d2e9.js";const m={__name:"MediaPage",setup(r){return(t,c)=>(a(),o(e))}};export{m as default};

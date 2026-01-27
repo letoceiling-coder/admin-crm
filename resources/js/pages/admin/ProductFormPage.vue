@@ -76,6 +76,33 @@
         </div>
       </div>
 
+      <!-- Вес и питательные вещества -->
+      <div class="bg-white rounded-lg border border-gray-200 p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Вес и питательные вещества</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Вес порции (гр)</label>
+            <input v-model.number="form.weight" type="number" min="0" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Калорийность (ккал)</label>
+            <input v-model.number="form.calories" type="number" min="0" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Белки (гр)</label>
+            <input v-model.number="form.protein" type="number" step="0.01" min="0" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Жиры (гр)</label>
+            <input v-model.number="form.fat" type="number" step="0.01" min="0" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Углеводы (гр)</label>
+            <input v-model.number="form.carbs" type="number" step="0.01" min="0" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
+          </div>
+        </div>
+      </div>
+
       <!-- Изображения -->
       <div class="bg-white rounded-lg border border-gray-200 p-6">
         <h2 class="text-lg font-semibold text-gray-900 mb-4">Изображения</h2>
@@ -187,6 +214,11 @@ const form = ref({
   description: '',
   sku: '',
   price: 0,
+  weight: null,
+  protein: null,
+  fat: null,
+  carbs: null,
+  calories: null,
   category_id: null,
   unit_id: null,
   image_id: null,
@@ -208,6 +240,11 @@ const fetchProduct = async () => {
       description: product.description || '',
       sku: product.sku || '',
       price: product.price || 0,
+      weight: product.weight || null,
+      protein: product.protein || null,
+      fat: product.fat || null,
+      carbs: product.carbs || null,
+      calories: product.calories || null,
       category_id: product.category_id || null,
       unit_id: product.unit_id || null,
       image_id: product.image_id || null,
