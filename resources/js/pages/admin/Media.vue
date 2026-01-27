@@ -60,6 +60,8 @@
         v-for="folder in filteredFolders"
         :key="folder.id"
         class="group relative"
+        @mouseenter="hoveredFolderId = folder.id"
+        @mouseleave="hoveredFolderId = null"
       >
         <div
           class="cursor-pointer"
@@ -84,7 +86,10 @@
         <button
           v-if="!folder.protected && !selectionMode"
           @click.stop="handleDeleteFolder(folder)"
-          class="absolute top-2 right-2 opacity-20 group-hover:opacity-100 transition-opacity w-6 h-6 flex items-center justify-center bg-red-500 text-white rounded text-xs hover:bg-red-600 z-30"
+          :class="[
+            'absolute top-2 right-2 transition-opacity w-6 h-6 flex items-center justify-center bg-red-500 text-white rounded text-xs hover:bg-red-600 z-30',
+            hoveredFolderId === folder.id ? 'opacity-100' : 'opacity-20'
+          ]"
           title="Удалить папку"
         >
           ✕
@@ -833,6 +838,7 @@ export default {
     const nestedFolders = ref([]) // Вложенные папки в текущей папке
     const breadcrumbs = ref([]) // Хлебные крошки для навигации
     const STORAGE_KEY = 'media_selected_folder_id' // Ключ для localStorage
+    const hoveredFolderId = ref(null) // ID папки, на которую наведен курсор
     
     // Пагинация и фильтрация
     const currentPage = ref(1)
@@ -2642,7 +2648,8 @@ export default {
       handleFileSearch,
       handleTypeFilter,
       handleSortChange,
-      getPageNumbers
+      getPageNumbers,
+      hoveredFolderId
     }
   }
 }
