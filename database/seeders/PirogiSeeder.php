@@ -124,6 +124,7 @@ class PirogiSeeder extends Seeder
                     'slug' => Str::slug($catData['name']),
                     'position' => $position++,
                     'is_active' => true,
+                    'user_id' => $this->userId,
                 ]
             );
             $categoryMap[$catData['id']] = $category;
@@ -187,6 +188,7 @@ class PirogiSeeder extends Seeder
                     'stock' => 0,
                     'position' => $productPosition++,
                     'is_active' => true,
+                    'user_id' => $this->userId,
                 ]
             );
 
