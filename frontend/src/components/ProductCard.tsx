@@ -3,8 +3,9 @@ import { Plus, Minus, Heart } from 'lucide-react';
 import type { Product } from '@/types';
 import { useCartStore } from '@/store/cartStore';
 import { cn } from '@/lib/utils';
-import { getImageUrl, handleImageError } from '@/lib/utils';
-import { useState } from 'react';
+import { getImageUrl, handleImageError, setDefaultImageUrl } from '@/lib/utils';
+import { useState, useEffect } from 'react';
+import { settingsApi } from '@/services/api';
 
 interface ProductCardProps {
   product: Product;
@@ -17,6 +18,25 @@ export function ProductCard({ product, onClick, variant = 'grid' }: ProductCardP
   const cartItem = items.find((item) => item.product.id === product.id);
   const quantity = cartItem?.quantity || 0;
   const [isFavorite, setIsFavorite] = useState(false);
+  const [imageUrl, setImageUrl] = useState(() => getImageUrl(product.image));
+
+  // Загружаем фото по умолчанию при монтировании, если изображения нет
+  useEffect(() => {
+    const currentUrl = getImageUrl(product.image);
+    setImageUrl(currentUrl);
+    
+    if (!product.image) {
+      // Предзагружаем фото по умолчанию из настроек
+      settingsApi.getDefaultImage().then((response) => {
+        if (response.image?.url) {
+          setDefaultImageUrl(response.image.url);
+          setImageUrl(response.image.url);
+        }
+      }).catch(() => {
+        // Если ошибка, оставляем no-image.png
+      });
+    }
+  }, [product.image]);
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -32,8 +52,6 @@ export function ProductCard({ product, onClick, variant = 'grid' }: ProductCardP
     e.stopPropagation();
     updateQuantity(product.id, quantity - 1);
   };
-
-  const imageUrl = getImageUrl(product.image);
 
   if (variant === 'list') {
     return (

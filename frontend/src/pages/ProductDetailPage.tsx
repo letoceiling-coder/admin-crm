@@ -4,22 +4,34 @@ import { MiniAppHeader } from '@/components/MiniAppHeader';
 import { BottomNavigation } from '@/components/BottomNavigation';
 import { ProductCard } from '@/components/ProductCard';
 import { useQuery } from '@tanstack/react-query';
-import { productApi } from '@/services/api';
+import { productApi, settingsApi } from '@/services/api';
 import type { Product } from '@/types';
 import { getImageUrl, handleImageError } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export function ProductDetailPage() {
   const { shopSlug, productId } = useParams<{ shopSlug: string; productId: string }>();
   const navigate = useNavigate();
   const [selectedImage, setSelectedImage] = useState(0);
+  const [defaultImageUrl, setDefaultImageUrl] = useState<string | null>(null);
 
   const { data: product, isLoading } = useQuery<Product>({
     queryKey: ['product', productId],
     queryFn: () => productApi.getById(Number(productId)),
     enabled: !!productId,
   });
+
+  // Загружаем фото по умолчанию
+  useEffect(() => {
+    settingsApi.getDefaultImage().then((response) => {
+      if (response.image?.url) {
+        setDefaultImageUrl(response.image.url);
+      }
+    }).catch(() => {
+      // Игнорируем ошибки
+    });
+  }, []);
 
   if (isLoading) {
     return (
@@ -54,7 +66,7 @@ export function ProductDetailPage() {
     ? product.images.map(img => getImageUrl(img))
     : product.image
     ? [getImageUrl(product.image)]
-    : ['/system/no-image.png'];
+    : [defaultImageUrl || '/system/no-image.png'];
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-amber-50 via-orange-50 to-red-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 pb-20 overflow-x-hidden">

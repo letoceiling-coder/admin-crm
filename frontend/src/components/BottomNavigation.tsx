@@ -1,4 +1,4 @@
-import { Home, ShoppingCart, User, Heart, type LucideIcon } from 'lucide-react';
+import { Home, ShoppingCart, Package, Info, type LucideIcon } from 'lucide-react';
 import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -21,9 +21,9 @@ export function BottomNavigation() {
   const base = shopSlug ? `/${shopSlug}` : '';
   const navItems: NavItem[] = [
     { icon: Home, label: 'Каталог', path: base || '/', exact: true },
-    { icon: Heart, label: 'Избранное', path: `${base}/favorites`, exact: false },
     { icon: ShoppingCart, label: 'Корзина', path: `${base}/cart`, exact: false, badge: totalItems > 0 ? totalItems : undefined },
-    { icon: User, label: 'Профиль', path: `${base}/profile`, exact: false },
+    { icon: Package, label: 'Заказы', path: `${base}/orders`, exact: false },
+    { icon: Info, label: 'О нас', path: `${base}/about`, exact: false },
   ];
 
   const isActive = (path: string, exact?: boolean) => {

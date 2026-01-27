@@ -40,11 +40,13 @@ async function getDefaultImageUrl(): Promise<string | null> {
 
 /**
  * Получить URL изображения с fallback на фото по умолчанию
+ * Если изображения нет, возвращает временный URL, который будет заменен на фото по умолчанию
  */
 export function getImageUrl(image?: { path?: string; url?: string }): string {
   if (!image) {
-    // Если изображения нет, возвращаем no-image.png
-    return '/system/no-image.png';
+    // Если изображения нет, возвращаем специальный маркер, который будет обработан в handleImageError
+    // или используем фото по умолчанию, если оно уже загружено
+    return getDefaultImageUrlSync() || '/system/no-image.png';
   }
   if (image.url) return image.url;
   if (image.path) {
@@ -54,7 +56,7 @@ export function getImageUrl(image?: { path?: string; url?: string }): string {
     }
     return `${import.meta.env.VITE_API_BASE_URL || 'https://crm.neeklo.ru'}/storage/${image.path}`;
   }
-  return '/system/no-image.png';
+  return getDefaultImageUrlSync() || '/system/no-image.png';
 }
 
 /**
@@ -62,6 +64,13 @@ export function getImageUrl(image?: { path?: string; url?: string }): string {
  */
 export function getDefaultImageUrlSync(): string | null {
   return defaultImageUrl;
+}
+
+/**
+ * Установить фото по умолчанию в кэш (для использования в компонентах)
+ */
+export function setDefaultImageUrl(url: string | null): void {
+  defaultImageUrl = url;
 }
 
 /**
