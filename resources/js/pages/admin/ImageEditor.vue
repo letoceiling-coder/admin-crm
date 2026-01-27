@@ -1,6 +1,6 @@
 <template>
   <div v-if="show" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
-    <div class="bg-background border border-border rounded-lg shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col">
+    <div class="bg-white border border-border rounded-lg shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col">
       <!-- Header -->
       <div class="flex items-center justify-between p-4 border-b border-border">
         <div class="flex items-center gap-3">
@@ -18,7 +18,7 @@
         <div class="flex gap-2">
           <button
             @click="handleClose"
-            class="px-4 py-2 border border-border bg-background/50 hover:bg-accent/10 rounded-lg transition-colors"
+            class="px-4 py-2 border border-border bg-white hover:bg-accent/10 rounded-lg transition-colors"
           >
             Отмена
           </button>
@@ -37,7 +37,7 @@
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <!-- Cropper Area -->
           <div class="lg:col-span-2">
-            <div class="bg-muted/30 rounded-lg p-4">
+            <div class="bg-white rounded-lg p-4">
               <Cropper
                 ref="cropperRef"
                 :src="imageUrl"
@@ -57,7 +57,7 @@
             </div>
 
             <!-- Crop Info -->
-            <div class="mt-4 p-3 bg-muted/30 rounded-lg">
+            <div class="mt-4 p-3 bg-white rounded-lg">
               <div class="grid grid-cols-2 gap-4 text-sm">
                 <div>
                   <span class="text-muted-foreground">Исходный размер:</span>
@@ -74,7 +74,7 @@
           <!-- Controls Sidebar -->
           <div class="space-y-4">
             <!-- Aspect Ratio -->
-            <div class="bg-muted/30 rounded-lg p-4">
+            <div class="bg-white rounded-lg p-4">
               <h3 class="text-sm font-semibold mb-3">Соотношение сторон</h3>
               <div class="space-y-2">
                 <label class="flex items-center gap-2">
@@ -126,7 +126,7 @@
             </div>
 
             <!-- Zoom -->
-            <div class="bg-muted/30 rounded-lg p-4">
+            <div class="bg-white rounded-lg p-4">
               <h3 class="text-sm font-semibold mb-3">Масштаб</h3>
               <div class="space-y-2">
                 <div class="flex items-center gap-2">
@@ -159,7 +159,7 @@
             </div>
 
             <!-- Rotate -->
-            <div class="bg-muted/30 rounded-lg p-4">
+            <div class="bg-white rounded-lg p-4">
               <h3 class="text-sm font-semibold mb-3">Поворот</h3>
               <div class="grid grid-cols-2 gap-2">
                 <button
@@ -190,7 +190,7 @@
             </div>
 
             <!-- Flip -->
-            <div class="bg-muted/30 rounded-lg p-4">
+            <div class="bg-white rounded-lg p-4">
               <h3 class="text-sm font-semibold mb-3">Отразить</h3>
               <div class="grid grid-cols-2 gap-2">
                 <button
@@ -209,7 +209,7 @@
             </div>
 
             <!-- Output Settings -->
-            <div class="bg-muted/30 rounded-lg p-4">
+            <div class="bg-white rounded-lg p-4">
               <h3 class="text-sm font-semibold mb-3">Настройки вывода</h3>
               <div class="space-y-3">
                 <div>
@@ -258,7 +258,7 @@
             </div>
 
             <!-- Actions -->
-            <div class="bg-muted/30 rounded-lg p-4">
+            <div class="bg-white rounded-lg p-4">
               <h3 class="text-sm font-semibold mb-3">Действия</h3>
               <div class="space-y-2">
                 <button
@@ -282,7 +282,7 @@
 
     <!-- Save Options Modal -->
     <div v-if="showSaveOptions" class="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm">
-      <div class="bg-background border border-border rounded-lg shadow-2xl w-full max-w-md p-6">
+      <div class="bg-white border border-border rounded-lg shadow-2xl w-full max-w-md p-6">
         <h3 class="text-lg font-semibold mb-4">Сохранить изображение</h3>
         <div class="space-y-3">
           <button
@@ -301,7 +301,7 @@
           </button>
           <button
             @click="showSaveOptions = false"
-            class="w-full h-12 flex items-center justify-center border border-border bg-background/50 hover:bg-accent/10 rounded-lg transition-colors"
+            class="w-full h-12 flex items-center justify-center border border-border bg-white hover:bg-accent/10 rounded-lg transition-colors"
           >
             Отмена
           </button>

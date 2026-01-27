@@ -28,12 +28,12 @@
       "resources/js/pages/admin/SubscriptionPage.vue",
       "resources/js/pages/admin/MediaPage.vue"
     ],
-    "file": "assets/app-766f47fa.js",
+    "file": "assets/app-2008b6b5.js",
     "isEntry": true,
     "src": "resources/js/app.js"
   },
   "resources/js/layouts/AdminLayout.vue": {
-    "file": "assets/AdminLayout-68cd7e49.js",
+    "file": "assets/AdminLayout-c467bdae.js",
     "imports": [
       "resources/js/app.js"
     ],
@@ -41,7 +41,7 @@
     "src": "resources/js/layouts/AdminLayout.vue"
   },
   "resources/js/pages/HomePage.vue": {
-    "file": "assets/HomePage-ba4922b2.js",
+    "file": "assets/HomePage-2831471e.js",
     "imports": [
       "resources/js/app.js"
     ],
@@ -49,7 +49,7 @@
     "src": "resources/js/pages/HomePage.vue"
   },
   "resources/js/pages/admin/DashboardPage.vue": {
-    "file": "assets/DashboardPage-6793a831.js",
+    "file": "assets/DashboardPage-883c4dce.js",
     "imports": [
       "resources/js/app.js"
     ],
@@ -57,14 +57,14 @@
     "src": "resources/js/pages/admin/DashboardPage.vue"
   },
   "resources/js/pages/admin/MediaPage.css": {
-    "file": "assets/MediaPage-54dc6cad.css",
+    "file": "assets/MediaPage-9f00ae80.css",
     "src": "resources/js/pages/admin/MediaPage.css"
   },
   "resources/js/pages/admin/MediaPage.vue": {
     "css": [
-      "assets/MediaPage-54dc6cad.css"
+      "assets/MediaPage-9f00ae80.css"
     ],
-    "file": "assets/MediaPage-6fd901fd.js",
+    "file": "assets/MediaPage-9b510d97.js",
     "imports": [
       "resources/js/app.js",
       "_sweetalert2.esm.all-3fe0d2e9.js"
@@ -73,7 +73,7 @@
     "src": "resources/js/pages/admin/MediaPage.vue"
   },
   "resources/js/pages/admin/ShopFormPage.vue": {
-    "file": "assets/ShopFormPage-d4a92748.js",
+    "file": "assets/ShopFormPage-36fadeda.js",
     "imports": [
       "resources/js/app.js"
     ],
@@ -81,7 +81,7 @@
     "src": "resources/js/pages/admin/ShopFormPage.vue"
   },
   "resources/js/pages/admin/ShopsPage.vue": {
-    "file": "assets/ShopsPage-20013566.js",
+    "file": "assets/ShopsPage-f2b4d697.js",
     "imports": [
       "resources/js/app.js"
     ],
@@ -89,7 +89,7 @@
     "src": "resources/js/pages/admin/ShopsPage.vue"
   },
   "resources/js/pages/admin/SubscriptionPage.vue": {
-    "file": "assets/SubscriptionPage-7f5238f9.js",
+    "file": "assets/SubscriptionPage-7f868702.js",
     "imports": [
       "resources/js/app.js"
     ],
@@ -97,7 +97,7 @@
     "src": "resources/js/pages/admin/SubscriptionPage.vue"
   },
   "resources/js/pages/admin/auth/ForgotPasswordPage.vue": {
-    "file": "assets/ForgotPasswordPage-ab7b550f.js",
+    "file": "assets/ForgotPasswordPage-0f4e44f3.js",
     "imports": [
       "resources/js/app.js"
     ],
@@ -105,7 +105,7 @@
     "src": "resources/js/pages/admin/auth/ForgotPasswordPage.vue"
   },
   "resources/js/pages/admin/auth/LoginPage.vue": {
-    "file": "assets/LoginPage-cfea5294.js",
+    "file": "assets/LoginPage-f1a7d6c3.js",
     "imports": [
       "resources/js/app.js"
     ],
@@ -113,7 +113,7 @@
     "src": "resources/js/pages/admin/auth/LoginPage.vue"
   },
   "resources/js/pages/admin/auth/RegisterPage.vue": {
-    "file": "assets/RegisterPage-6b8c1451.js",
+    "file": "assets/RegisterPage-9af34330.js",
     "imports": [
       "resources/js/app.js",
       "_sweetalert2.esm.all-3fe0d2e9.js"
@@ -122,7 +122,7 @@
     "src": "resources/js/pages/admin/auth/RegisterPage.vue"
   },
   "resources/js/pages/admin/auth/ResetPasswordPage.vue": {
-    "file": "assets/ResetPasswordPage-b4da1072.js",
+    "file": "assets/ResetPasswordPage-bf642662.js",
     "imports": [
       "resources/js/app.js"
     ],
