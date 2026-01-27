@@ -174,7 +174,10 @@ class PirogiSeeder extends Seeder
             // Определяем единицу измерения для товара
             $unit = $this->determineUnitForProduct($productData['name'], $productData['price'], $unitModels);
 
-            // Создаем товар
+            // Собираем питательные вещества и вес (если есть в данных)
+            $nutritionalData = $this->extractNutritionalData($productData);
+
+            // Создаем или обновляем товар
             $product = Product::withoutGlobalScopes()->firstOrCreate(
                 ['slug' => Str::slug($productData['name'])],
                 [
@@ -183,6 +186,11 @@ class PirogiSeeder extends Seeder
                     'description' => null,
                     'sku' => null,
                     'price' => $productData['price'] ?? 0,
+                    'weight' => $nutritionalData['weight'] ?? null,
+                    'protein' => $nutritionalData['protein'] ?? null,
+                    'fat' => $nutritionalData['fat'] ?? null,
+                    'carbs' => $nutritionalData['carbs'] ?? null,
+                    'calories' => $nutritionalData['calories'] ?? null,
                     'category_id' => $categoryMap[$productData['categoryId']]->id ?? null,
                     'unit_id' => $unit ? $unit->id : null,
                     'stock' => 0,
@@ -192,16 +200,33 @@ class PirogiSeeder extends Seeder
                 ]
             );
 
-            // Пытаемся найти и скачать изображение
-            $imageDownloaded = $this->downloadProductImage($product, $productData, $categoryMap);
-            
-            if ($imageDownloaded) {
-                $downloadedCount++;
-                $this->command->info("Создан товар: {$product->name} ✓");
-            } else {
-                $failedCount++;
-                $this->command->info("Создан товар: {$product->name} ⚠ (изображение не найдено)");
+            // Обновляем питательные вещества, если товар уже существовал
+            if ($product->wasRecentlyCreated === false) {
+                $updateData = [];
+                if (isset($nutritionalData['weight'])) $updateData['weight'] = $nutritionalData['weight'];
+                if (isset($nutritionalData['protein'])) $updateData['protein'] = $nutritionalData['protein'];
+                if (isset($nutritionalData['fat'])) $updateData['fat'] = $nutritionalData['fat'];
+                if (isset($nutritionalData['carbs'])) $updateData['carbs'] = $nutritionalData['carbs'];
+                if (isset($nutritionalData['calories'])) $updateData['calories'] = $nutritionalData['calories'];
+                
+                if (!empty($updateData)) {
+                    $product->update($updateData);
+                }
             }
+
+            // Пытаемся найти и скачать изображение (только если его еще нет)
+            if (!$product->image_id) {
+                $imageDownloaded = $this->downloadProductImage($product, $productData, $categoryMap);
+                if ($imageDownloaded) {
+                    $downloadedCount++;
+                } else {
+                    $failedCount++;
+                }
+            } else {
+                $downloadedCount++;
+            }
+            
+            $this->command->info("Товар: {$product->name} " . ($product->wasRecentlyCreated ? 'создан' : 'обновлен') . ($product->image_id ? ' ✓' : ' ⚠'));
         }
 
         $this->command->info('');
@@ -306,6 +331,39 @@ class PirogiSeeder extends Seeder
         ];
 
         return $units;
+    }
+
+    /**
+     * Извлечь питательные вещества и вес из данных товара
+     */
+    private function extractNutritionalData(array $productData): array
+    {
+        $result = [
+            'weight' => null,
+            'protein' => null,
+            'fat' => null,
+            'carbs' => null,
+            'calories' => null,
+        ];
+
+        // Если данные уже есть в JSON
+        if (isset($productData['weight'])) {
+            $result['weight'] = $productData['weight'];
+        }
+        if (isset($productData['protein'])) {
+            $result['protein'] = $productData['protein'];
+        }
+        if (isset($productData['fat'])) {
+            $result['fat'] = $productData['fat'];
+        }
+        if (isset($productData['carbs'])) {
+            $result['carbs'] = $productData['carbs'];
+        }
+        if (isset($productData['calories'])) {
+            $result['calories'] = $productData['calories'];
+        }
+
+        return $result;
     }
 
     /**
