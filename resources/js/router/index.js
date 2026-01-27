@@ -68,6 +68,12 @@ const routes = [
         component: () => import('../pages/admin/SubscriptionPage.vue'),
         meta: { title: 'Подписка' },
       },
+      {
+        path: 'media',
+        name: 'admin.media',
+        component: () => import('../pages/admin/MediaPage.vue'),
+        meta: { title: 'Медиа' },
+      },
     ],
   },
 ];

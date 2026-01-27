@@ -6,6 +6,8 @@ use App\Http\Controllers\Api\Auth\AuthController;
 use App\Http\Controllers\Api\DeployController;
 use App\Http\Controllers\Api\ShopController;
 use App\Http\Controllers\Api\SubscriptionController;
+use App\Http\Controllers\Api\v1\FolderController;
+use App\Http\Controllers\Api\v1\MediaController;
 
 /*
 |--------------------------------------------------------------------------
@@ -48,5 +50,19 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/bot-info', [ShopController::class, 'getBotInfo']);
             Route::post('/send-test-message', [ShopController::class, 'sendTestMessage']);
         });
+    });
+
+    // Media API (v1)
+    Route::prefix('v1')->group(function () {
+        // Folders
+        Route::get('folders/tree/all', [FolderController::class, 'tree'])->name('folders.tree');
+        Route::post('folders/update-positions', [FolderController::class, 'updatePositions'])->name('folders.update-positions');
+        Route::post('folders/{id}/restore', [FolderController::class, 'restore'])->name('folders.restore');
+        Route::apiResource('folders', FolderController::class);
+        
+        // Media
+        Route::post('media/{id}/restore', [MediaController::class, 'restore'])->name('media.restore');
+        Route::delete('media/trash/empty', [MediaController::class, 'emptyTrash'])->name('media.trash.empty');
+        Route::apiResource('media', MediaController::class);
     });
 });

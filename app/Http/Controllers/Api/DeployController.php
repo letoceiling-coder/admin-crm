@@ -78,6 +78,23 @@ class DeployController extends Controller
                 Log::warning('⚠️ Manifest.json не найден после git pull. Убедитесь, что файлы собраны локально и закоммичены в git.');
             }
 
+            // 1.6. Установка npm зависимостей (если npm доступен и не пропущено)
+            $skipNpm = $request->input('skip_npm', false);
+            if (!$skipNpm) {
+                $npmResult = $this->handleNpmInstall();
+                $result['data']['npm_install'] = $npmResult;
+                if (!$npmResult['success'] && $npmResult['status'] !== 'skipped') {
+                    Log::warning('⚠️ npm install не выполнен: ' . ($npmResult['error'] ?? 'неизвестная ошибка'));
+                    // Не прерываем деплой, так как файлы могут быть уже собраны
+                }
+            } else {
+                $result['data']['npm_install'] = [
+                    'status' => 'skipped',
+                    'message' => 'npm install пропущен (skip_npm=true)',
+                ];
+                Log::info('npm install пропущен по запросу');
+            }
+
             // 2. Composer install
             $composerResult = $this->handleComposerInstall();
             $result['data']['composer_install'] = $composerResult['status'];
@@ -779,6 +796,137 @@ class DeployController extends Controller
             'assets_dir_exists' => $assetsExists,
             'assets_count' => $assetsCount,
         ];
+    }
+
+    /**
+     * Выполнить npm install
+     */
+    protected function handleNpmInstall(): array
+    {
+        try {
+            // Проверяем доступность npm
+            if (!$this->isNpmAvailable()) {
+                return [
+                    'success' => false,
+                    'status' => 'skipped',
+                    'message' => 'npm недоступен на сервере',
+                    'error' => 'npm не найден в системе',
+                ];
+            }
+
+            // Проверяем наличие package.json
+            $packageJsonPath = $this->basePath . '/package.json';
+            if (!file_exists($packageJsonPath)) {
+                return [
+                    'success' => false,
+                    'status' => 'skipped',
+                    'message' => 'package.json не найден',
+                    'error' => 'package.json отсутствует',
+                ];
+            }
+
+            Log::info('📦 Выполнение npm install...');
+            
+            // Получаем путь к npm (может быть указан в .env)
+            $npmPath = $this->getNpmPath();
+            
+            $env = [];
+            // Увеличиваем таймаут для npm install (может занять много времени)
+            $process = Process::path($this->basePath)
+                ->timeout(600) // 10 минут
+                ->env($env)
+                ->run("{$npmPath} install --production 2>&1");
+
+            if ($process->successful()) {
+                Log::info('✅ npm install выполнен успешно');
+                return [
+                    'success' => true,
+                    'status' => 'success',
+                    'message' => 'npm install выполнен успешно',
+                    'output' => $process->output(),
+                ];
+            }
+
+            $error = $process->errorOutput() ?: $process->output();
+            Log::warning('⚠️ npm install завершился с ошибкой', [
+                'error' => $error,
+            ]);
+
+            return [
+                'success' => false,
+                'status' => 'error',
+                'message' => 'npm install завершился с ошибкой',
+                'error' => substr($error, 0, 500), // Ограничиваем длину ошибки
+            ];
+        } catch (\Exception $e) {
+            Log::error('❌ Исключение при выполнении npm install', [
+                'error' => $e->getMessage(),
+            ]);
+            return [
+                'success' => false,
+                'status' => 'error',
+                'message' => 'Исключение при выполнении npm install',
+                'error' => $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Проверить доступность npm
+     */
+    protected function isNpmAvailable(): bool
+    {
+        try {
+            $npmPath = $this->getNpmPath();
+            
+            // Проверка через which (Unix-like)
+            $result = shell_exec("which {$npmPath} 2>/dev/null");
+            if ($result && trim($result)) {
+                return true;
+            }
+
+            // Проверка через exec (версия npm)
+            exec("{$npmPath} --version 2>&1", $output, $returnCode);
+            return $returnCode === 0;
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Получить путь к npm
+     */
+    protected function getNpmPath(): string
+    {
+        // 1. Проверить явно указанный путь в .env
+        $npmPath = env('NPM_PATH');
+        if ($npmPath && $this->isNpmExecutable($npmPath)) {
+            return $npmPath;
+        }
+
+        // 2. Попробовать автоматически найти npm
+        $possiblePaths = ['npm', 'npm8', 'npm9', 'npm10'];
+        foreach ($possiblePaths as $path) {
+            if ($this->isNpmExecutable($path)) {
+                return $path;
+            }
+        }
+
+        // 3. Fallback на 'npm'
+        return 'npm';
+    }
+
+    /**
+     * Проверить доступность npm по пути
+     */
+    protected function isNpmExecutable(string $path): bool
+    {
+        try {
+            exec("{$path} --version 2>&1", $output, $returnCode);
+            return $returnCode === 0;
+        } catch (\Exception $e) {
+            return false;
+        }
     }
 
     /**

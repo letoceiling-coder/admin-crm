@@ -17,6 +17,7 @@ class Deploy extends Command
     protected $signature = 'deploy
                             {--message= : Кастомное сообщение для коммита}
                             {--skip-build : Пропустить npm run build}
+                            {--skip-npm : Пропустить npm install на сервере}
                             {--dry-run : Показать что будет сделано без выполнения}
                             {--insecure : Отключить проверку SSL сертификата (для разработки)}
                             {--with-seed : Выполнить seeders на сервере (по умолчанию пропускаются)}
@@ -606,6 +607,7 @@ class Deploy extends Command
                     'deployed_by' => get_current_user(),
                     'timestamp' => now()->toDateTimeString(),
                     'run_seeders' => $this->option('with-seed'),
+                    'skip_npm' => $this->option('skip-npm'),
                 ]);
 
             // Проверяем статус ответа
@@ -643,6 +645,22 @@ class Deploy extends Command
 
                     if (isset($dataArray['composer_install'])) {
                         $this->line("     Composer: {$dataArray['composer_install']}");
+                    }
+
+                    if (isset($dataArray['npm_install'])) {
+                        $npmInstall = $dataArray['npm_install'];
+                        if (is_array($npmInstall)) {
+                            $status = $npmInstall['status'] ?? 'unknown';
+                            $message = $npmInstall['message'] ?? '';
+                            if ($status === 'skipped') {
+                                $this->line("     npm install: пропущен ({$message})");
+                            } elseif ($status === 'success') {
+                                $this->line("     npm install: успешно");
+                            } else {
+                                $error = $npmInstall['error'] ?? 'неизвестная ошибка';
+                                $this->warn("     npm install: ошибка - {$error}");
+                            }
+                        }
                     }
 
                     if (isset($dataArray['migrations'])) {

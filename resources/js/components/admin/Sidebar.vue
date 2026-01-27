@@ -77,6 +77,22 @@
         </svg>
         <span v-if="!isCollapsed">Подписка</span>
       </router-link>
+      <router-link
+        to="/admin/media"
+        class="flex items-center rounded-xl text-sm font-medium transition-all px-4 py-3 gap-3"
+        :class="[
+          isCollapsed ? 'justify-center' : '',
+          route.name === 'admin.media' 
+            ? 'bg-gray-800 text-white' 
+            : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+        ]"
+        @click="handleMobileMenuClick"
+      >
+        <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+        </svg>
+        <span v-if="!isCollapsed">Медиа</span>
+      </router-link>
     </nav>
     <div class="border-t border-gray-800 space-y-3 p-4">
       <div class="flex items-center gap-3 px-2" :class="isCollapsed ? 'justify-center' : ''">
