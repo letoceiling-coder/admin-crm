@@ -6,7 +6,7 @@ import { BottomNavigation } from '@/components/BottomNavigation';
 import { DeliveryModeToggle } from '@/components/DeliveryModeToggle';
 import { useCartStore } from '@/store/cartStore';
 import { CheckCircle } from 'lucide-react';
-import { shopApi, deliverySettingsApi } from '@/services/api';
+import { shopApi, deliverySettingsApi, paymentMethodsApi, type PaymentMethodSetting } from '@/services/api';
 
 type DeliveryType = 'pickup' | 'delivery';
 
@@ -37,11 +37,19 @@ export function CheckoutPage() {
   const [deliveryCost, setDeliveryCost] = useState<number | null>(null);
   const [isCalculatingDelivery, setIsCalculatingDelivery] = useState(false);
   const [defaultCity, setDefaultCity] = useState<string>('Екатеринбург');
+  const [deliveryTypeSettings, setDeliveryTypeSettings] = useState<'fixed' | 'zones' | null>(null);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethodSetting[]>([]);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string | null>(null);
+  const [paymentDiscount, setPaymentDiscount] = useState<{ discount: number; final_amount: number; applied: boolean } | null>(null);
+  const [paymentNotification, setPaymentNotification] = useState<string | null>(null);
 
   const totalAmount = getTotalAmount();
-  const finalAmount = deliveryType === 'delivery' && deliveryCost !== null 
-    ? totalAmount + deliveryCost 
-    : totalAmount;
+  
+  // Рассчитываем итоговую сумму с учетом доставки и скидки способа оплаты
+  const deliveryCostValue = (deliveryType === 'delivery' && deliveryCost !== null) ? deliveryCost : 0;
+  const finalAmount = paymentDiscount && paymentDiscount.applied 
+    ? paymentDiscount.final_amount 
+    : totalAmount + deliveryCostValue;
 
   // Сохранение deliveryType в localStorage
   useEffect(() => {
@@ -73,6 +81,9 @@ export function CheckoutPage() {
         if (settings.default_city) {
           setDefaultCity(settings.default_city);
         }
+        if (settings.delivery_type) {
+          setDeliveryTypeSettings(settings.delivery_type);
+        }
       } catch (error) {
         console.error('Error loading delivery settings:', error);
       }
@@ -81,22 +92,141 @@ export function CheckoutPage() {
     loadSettings();
   }, [shopIdState]);
 
-  // Расчет стоимости доставки при изменении адреса
+  // Загрузка способов оплаты
   useEffect(() => {
-    if (deliveryType === 'delivery' && address.trim().length > 5 && shopIdState) {
+    if (!shopIdState) return;
+    
+    const loadPaymentMethods = async () => {
+      try {
+        const methods = await paymentMethodsApi.getSettings(shopIdState);
+        
+        // Фильтруем по доступности в зависимости от типа доставки
+        const availableMethods = methods.filter(method => {
+          if (deliveryType === 'delivery') {
+            return method.available_for_delivery;
+          } else {
+            return method.available_for_pickup;
+          }
+        });
+        
+        setPaymentMethods(availableMethods);
+        
+        // Устанавливаем способ оплаты по умолчанию
+        const defaultMethod = availableMethods.find(m => m.is_default) || availableMethods[0];
+        if (defaultMethod) {
+          setSelectedPaymentMethod(defaultMethod.payment_method_code);
+        }
+      } catch (error) {
+        console.error('Error loading payment methods:', error);
+      }
+    };
+
+    loadPaymentMethods();
+  }, [shopIdState, deliveryType]);
+
+  // Расчет скидки при изменении способа оплаты или суммы
+  useEffect(() => {
+    if (!selectedPaymentMethod || !shopIdState) {
+      setPaymentDiscount(null);
+      setPaymentNotification(null);
+      return;
+    }
+
+    const method = paymentMethods.find(m => m.payment_method_code === selectedPaymentMethod);
+    if (!method) {
+      setPaymentDiscount(null);
+      setPaymentNotification(null);
+      return;
+    }
+
+    // Скидка рассчитывается от суммы товаров (без доставки)
+    const cartAmount = totalAmount;
+    
+    // Расчет скидки
+    let discount = 0;
+    let applied = false;
+
+    if (method.discount_type === 'none') {
+      discount = 0;
+      applied = false;
+    } else {
+      // Проверяем минимальную сумму корзины
+      if (method.min_cart_amount && cartAmount < method.min_cart_amount) {
+        discount = 0;
+        applied = false;
+      } else {
+        // Рассчитываем скидку
+        if (method.discount_type === 'percentage' && method.discount_value) {
+          discount = (cartAmount * method.discount_value) / 100;
+          applied = true;
+        } else if (method.discount_type === 'fixed' && method.discount_value) {
+          discount = Math.min(method.discount_value, cartAmount);
+          applied = true;
+        }
+      }
+    }
+
+    // Итоговая сумма = товары - скидка + доставка
+    const deliveryCostValue = (deliveryType === 'delivery' && deliveryCost !== null) ? deliveryCost : 0;
+    const finalAmount = Math.max(0, cartAmount - discount + deliveryCostValue);
+
+    setPaymentDiscount({
+      discount: Math.round(discount * 100) / 100,
+      final_amount: Math.round(finalAmount * 100) / 100,
+      applied,
+    });
+
+    // Получаем уведомление
+    if (method.show_notification && method.notification_text && applied) {
+      let notification = method.notification_text;
+      notification = notification.replace(/{discount}/g, discount.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+      notification = notification.replace(/{final_amount}/g, (cartAmount - discount).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+      notification = notification.replace(/{cart_amount}/g, cartAmount.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+      if (method.discount_type === 'percentage' && method.discount_value) {
+        notification = notification.replace(/{discount_percent}/g, method.discount_value.toString());
+      }
+      setPaymentNotification(notification);
+    } else {
+      setPaymentNotification(null);
+    }
+  }, [selectedPaymentMethod, totalAmount, deliveryType, deliveryCost, paymentMethods, shopIdState]);
+
+  // Расчет стоимости доставки при изменении адреса или типа доставки
+  useEffect(() => {
+    if (deliveryType === 'delivery' && shopIdState) {
       const timeoutId = setTimeout(async () => {
         setIsCalculatingDelivery(true);
         try {
-          const result = await deliverySettingsApi.calculateCost(address, totalAmount, shopIdState);
-          if (result.valid && result.cost !== undefined) {
-            setDeliveryCost(result.cost);
+          // Для фиксированной доставки адрес не обязателен, но можно использовать минимальную длину
+          // Для зон доставки адрес обязателен
+          const settings = await deliverySettingsApi.getSettings(shopIdState);
+          
+          if (settings.delivery_type === 'fixed') {
+            // Для фиксированной доставки просто используем фиксированную стоимость
+            // Проверяем порог бесплатной доставки
+            if (settings.free_delivery_threshold && totalAmount >= settings.free_delivery_threshold) {
+              setDeliveryCost(0);
+            } else {
+              setDeliveryCost(settings.fixed_delivery_cost || 0);
+            }
+            setIsCalculatingDelivery(false);
           } else {
-            setDeliveryCost(null);
+            // Для зон доставки требуется адрес
+            if (address.trim().length > 5) {
+              const result = await deliverySettingsApi.calculateCost(address, totalAmount, shopIdState);
+              if (result.valid && result.cost !== undefined) {
+                setDeliveryCost(result.cost);
+              } else {
+                setDeliveryCost(null);
+              }
+            } else {
+              setDeliveryCost(null);
+            }
+            setIsCalculatingDelivery(false);
           }
         } catch (error) {
           console.error('Error calculating delivery cost:', error);
           setDeliveryCost(null);
-        } finally {
           setIsCalculatingDelivery(false);
         }
       }, 1000); // Debounce 1 секунда
@@ -120,6 +250,13 @@ export function CheckoutPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Проверка обязательных полей
+    if (!selectedPaymentMethod) {
+      alert('Выберите способ оплаты');
+      return;
+    }
+    
     setIsSubmitting(true);
 
     try {
@@ -235,23 +372,82 @@ export function CheckoutPage() {
               {deliveryType === 'delivery' && (
                 <div>
                   <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
-                    Адрес доставки *
+                    Адрес доставки {deliveryTypeSettings === 'zones' ? '*' : ''}
                   </label>
                   <textarea
-                    required
+                    required={deliveryTypeSettings === 'zones'}
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
                     rows={3}
                     className="w-full px-4 py-3 rounded-xl border-2 border-amber-200 dark:border-amber-900 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none"
-                    placeholder={`Укажите адрес доставки${defaultCity ? ` (${defaultCity})` : ''}`}
+                    placeholder={deliveryTypeSettings === 'fixed' 
+                      ? `Укажите адрес доставки (необязательно)${defaultCity ? ` (${defaultCity})` : ''}`
+                      : `Укажите адрес доставки${defaultCity ? ` (${defaultCity})` : ''}`
+                    }
                   />
-                  {isCalculatingDelivery && (
+                  {deliveryTypeSettings === 'zones' && isCalculatingDelivery && (
                     <p className="text-xs text-gray-500 mt-1">Расчет стоимости доставки...</p>
                   )}
                   {!isCalculatingDelivery && deliveryCost !== null && (
                     <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
                       Стоимость доставки: {deliveryCost.toLocaleString('ru-RU')} ₽
                     </p>
+                  )}
+                  {deliveryTypeSettings === 'fixed' && deliveryCost !== null && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Фиксированная стоимость доставки
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Выбор способа оплаты */}
+              {paymentMethods.length > 0 && (
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
+                    Способ оплаты *
+                  </label>
+                  <div className="space-y-2">
+                    {paymentMethods.map((method) => (
+                      <label
+                        key={method.payment_method_code}
+                        className="flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all"
+                        style={{
+                          borderColor: selectedPaymentMethod === method.payment_method_code
+                            ? 'rgb(217 119 6)' // amber-600
+                            : 'rgb(251 191 36)', // amber-200
+                          backgroundColor: selectedPaymentMethod === method.payment_method_code
+                            ? 'rgb(255 247 237)' // amber-50
+                            : 'transparent',
+                        }}
+                      >
+                        <input
+                          type="radio"
+                          name="payment_method"
+                          value={method.payment_method_code}
+                          checked={selectedPaymentMethod === method.payment_method_code}
+                          onChange={() => setSelectedPaymentMethod(method.payment_method_code)}
+                          className="w-4 h-4 text-amber-600 focus:ring-amber-500"
+                        />
+                        <div className="flex-1">
+                          <div className="font-medium text-gray-900 dark:text-white">
+                            {method.name}
+                          </div>
+                          {method.description && (
+                            <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                              {method.description}
+                            </div>
+                          )}
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                  {paymentNotification && (
+                    <div className="mt-2 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-900 rounded-lg">
+                      <p className="text-sm text-amber-800 dark:text-amber-200">
+                        {paymentNotification}
+                      </p>
+                    </div>
                   )}
                 </div>
               )}
@@ -289,6 +485,14 @@ export function CheckoutPage() {
                   <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Доставка:</span>
                   <span className="text-lg font-bold text-gray-900 dark:text-white">
                     {deliveryCost.toLocaleString('ru-RU')} ₽
+                  </span>
+                </div>
+              )}
+              {paymentDiscount && paymentDiscount.applied && (
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-green-600 dark:text-green-400">Скидка:</span>
+                  <span className="text-lg font-bold text-green-600 dark:text-green-400">
+                    -{paymentDiscount.discount.toLocaleString('ru-RU')} ₽
                   </span>
                 </div>
               )}

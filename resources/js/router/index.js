@@ -80,12 +80,18 @@ const routes = [
         component: () => import('../pages/admin/SettingsPage.vue'),
         meta: { title: 'Настройки' },
       },
-      {
-        path: 'settings/delivery',
-        name: 'admin.settings.delivery',
-        component: () => import('../pages/admin/DeliverySettingsPage.vue'),
-        meta: { title: 'Настройки доставки' },
-      },
+                      {
+                        path: 'settings/delivery',
+                        name: 'admin.settings.delivery',
+                        component: () => import('../pages/admin/DeliverySettingsPage.vue'),
+                        meta: { title: 'Настройки доставки' },
+                      },
+                      {
+                        path: 'payment-methods',
+                        name: 'admin.payment-methods',
+                        component: () => import('../pages/admin/PaymentMethodSettingsPage.vue'),
+                        meta: { title: 'Способы оплаты' },
+                      },
       // Каталог
       {
         path: 'categories',

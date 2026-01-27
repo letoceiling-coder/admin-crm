@@ -127,23 +127,27 @@ class DeliverySettingsController extends Controller
                 $settings->yandex_geocoder_api_key = $existingApiKey;
             }
             
-            // Если адрес изменился, всегда геокодируем его (игнорируя старые координаты)
-            if ($addressChanged) {
-                Log::info('Адрес начала доставки изменился, выполняется геокодирование', [
-                    'old_address' => $oldAddress,
-                    'new_address' => $newAddress,
-                ]);
-                // Удаляем старые координаты перед геокодированием
-                $settings->origin_latitude = null;
-                $settings->origin_longitude = null;
-                $this->geocodeOriginAddress($settings);
-            } elseif (!empty($newAddress)) {
-                // Если адрес не изменился, но координаты не были переданы или пустые, пытаемся геокодировать
-                if (empty($settings->origin_latitude) || empty($settings->origin_longitude)) {
-                    Log::info('Координаты отсутствуют, выполняется геокодирование адреса', [
-                        'address' => $newAddress,
+            // Геокодинг адреса требуется только для типа "зоны"
+            // Для фиксированной доставки геокодинг не обязателен
+            if ($settings->delivery_type === 'zones') {
+                // Если адрес изменился, всегда геокодируем его (игнорируя старые координаты)
+                if ($addressChanged) {
+                    Log::info('Адрес начала доставки изменился, выполняется геокодирование', [
+                        'old_address' => $oldAddress,
+                        'new_address' => $newAddress,
                     ]);
+                    // Удаляем старые координаты перед геокодированием
+                    $settings->origin_latitude = null;
+                    $settings->origin_longitude = null;
                     $this->geocodeOriginAddress($settings);
+                } elseif (!empty($newAddress)) {
+                    // Если адрес не изменился, но координаты не были переданы или пустые, пытаемся геокодировать
+                    if (empty($settings->origin_latitude) || empty($settings->origin_longitude)) {
+                        Log::info('Координаты отсутствуют, выполняется геокодирование адреса', [
+                            'address' => $newAddress,
+                        ]);
+                        $this->geocodeOriginAddress($settings);
+                    }
                 }
             }
             

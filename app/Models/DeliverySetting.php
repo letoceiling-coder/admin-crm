@@ -52,6 +52,8 @@ class DeliverySetting extends Model
         'free_delivery_threshold',
         'delivery_zones',
         'is_enabled',
+        'delivery_type',
+        'fixed_delivery_cost',
         'min_delivery_order_total_rub',
         'delivery_min_lead_hours',
     ];
@@ -67,6 +69,7 @@ class DeliverySetting extends Model
         'delivery_zones' => 'array',
         'is_enabled' => 'boolean',
         'free_delivery_threshold' => 'decimal:2',
+        'fixed_delivery_cost' => 'decimal:2',
         'min_delivery_order_total_rub' => 'decimal:2',
         'delivery_min_lead_hours' => 'integer',
         'created_at' => 'datetime',
@@ -128,6 +131,8 @@ class DeliverySetting extends Model
                     ['max_distance' => null, 'cost' => 1000], // свыше 12 км
                 ],
                 'is_enabled' => false, // По умолчанию выключено до настройки
+                'delivery_type' => 'zones', // По умолчанию зоны доставки
+                'fixed_delivery_cost' => null,
                 'min_delivery_order_total_rub' => 3000,
                 'delivery_min_lead_hours' => 3,
             ]);
@@ -137,19 +142,25 @@ class DeliverySetting extends Model
     }
 
     /**
-     * Получить стоимость доставки по расстоянию
+     * Получить стоимость доставки
      * 
-     * @param float $distance Расстояние в км
+     * @param float $distance Расстояние в км (используется только для типа 'zones')
      * @param float $cartTotal Сумма корзины
      * @return float Стоимость доставки
      */
-    public function getDeliveryCost(float $distance, float $cartTotal = 0): float
+    public function getDeliveryCost(float $distance = 0, float $cartTotal = 0): float
     {
-        // Проверка бесплатной доставки
+        // Проверка бесплатной доставки (применяется для обоих типов)
         if ($this->free_delivery_threshold > 0 && $cartTotal >= $this->free_delivery_threshold) {
             return 0.00;
         }
 
+        // Если тип доставки - фиксированная
+        if ($this->delivery_type === 'fixed') {
+            return (float) ($this->fixed_delivery_cost ?? 0);
+        }
+
+        // Если тип доставки - по зонам (старая логика)
         $zones = $this->delivery_zones ?? [];
         
         // Сортируем зоны по max_distance (по возрастанию)

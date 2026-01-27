@@ -135,6 +135,8 @@ export interface DeliverySettings {
   origin_longitude?: number;
   default_city?: string;
   free_delivery_threshold?: number;
+  delivery_type?: 'fixed' | 'zones';
+  fixed_delivery_cost?: number;
   delivery_zones?: Array<{ max_distance: number | null; cost: number }>;
   is_enabled?: boolean;
   min_delivery_order_total_rub?: number;
@@ -176,5 +178,37 @@ export const deliverySettingsApi = {
       method: 'POST',
       body: JSON.stringify({ query, city, shop_id: shopId }),
     });
+  },
+};
+
+// Payment Methods API
+export interface PaymentMethodSetting {
+  id?: number;
+  payment_method_code: 'cash' | 'yookassa';
+  name: string;
+  description?: string;
+  is_enabled: boolean;
+  is_default: boolean;
+  available_for_delivery: boolean;
+  available_for_pickup: boolean;
+  sort_order: number;
+  discount_type: 'none' | 'percentage' | 'fixed';
+  discount_value?: number;
+  min_cart_amount?: number;
+  show_notification: boolean;
+  notification_text?: string;
+  settings?: Record<string, any>;
+}
+
+export interface PaymentMethodDiscount {
+  discount: number;
+  final_amount: number;
+  applied: boolean;
+}
+
+export const paymentMethodsApi = {
+  getSettings: async (shopId: number): Promise<PaymentMethodSetting[]> => {
+    const response = await fetchApi<{ data: PaymentMethodSetting[] }>(`/v1/payment-methods?shop_id=${shopId}`);
+    return response.data;
   },
 };

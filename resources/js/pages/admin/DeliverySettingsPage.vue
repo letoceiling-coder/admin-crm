@@ -67,8 +67,60 @@
             </div>
           </div>
 
+          <!-- Delivery Type Toggle -->
+          <div class="space-y-4 pt-4 border-t border-gray-200">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">
+                Тип доставки
+              </label>
+              <div class="flex gap-4">
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input
+                    v-model="form.delivery_type"
+                    type="radio"
+                    value="fixed"
+                    class="w-4 h-4 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span class="text-sm text-gray-700">Фиксированная доставка</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input
+                    v-model="form.delivery_type"
+                    type="radio"
+                    value="zones"
+                    class="w-4 h-4 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span class="text-sm text-gray-700">Зоны доставки</span>
+                </label>
+              </div>
+              <p class="text-xs text-gray-500 mt-2">
+                Выберите тип расчета стоимости доставки: фиксированная сумма или по зонам расстояния
+              </p>
+            </div>
+          </div>
+
+          <!-- Fixed Delivery Cost (показывается только при выборе "Фиксированная доставка") -->
+          <div v-if="form.delivery_type === 'fixed'" class="space-y-4 pt-4 border-t border-gray-200">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                Фиксированная стоимость доставки (₽)
+              </label>
+              <input
+                v-model.number="form.fixed_delivery_cost"
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="500"
+                class="w-full h-10 px-3 rounded-lg border border-gray-300 bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <p class="text-xs text-gray-500 mt-1">
+                Фиксированная стоимость доставки для всех адресов. Бесплатная доставка будет применяться при достижении порога бесплатной доставки.
+              </p>
+            </div>
+          </div>
+
           <!-- Free Delivery Threshold -->
-          <div class="space-y-4">
+          <div class="space-y-4 pt-4 border-t border-gray-200">
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">
                 Сумма корзины для бесплатной доставки (₽)
@@ -87,8 +139,8 @@
             </div>
           </div>
 
-          <!-- Origin Point -->
-          <div class="space-y-4">
+          <!-- Origin Point (показывается только при выборе "Зоны доставки") -->
+          <div v-if="form.delivery_type === 'zones'" class="space-y-4">
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -143,8 +195,8 @@
             </div>
           </div>
 
-          <!-- Delivery Zones -->
-          <div class="space-y-4">
+          <!-- Delivery Zones (показываются только при выборе "Зоны доставки") -->
+          <div v-if="form.delivery_type === 'zones'" class="space-y-4">
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">
                 Зоны доставки
@@ -311,6 +363,8 @@ const form = ref({
   origin_longitude: '',
   default_city: 'Екатеринбург',
   free_delivery_threshold: 7000,
+  delivery_type: 'zones', // 'fixed' или 'zones'
+  fixed_delivery_cost: null,
   delivery_zones: [
     { max_distance: 3, cost: 300 },
     { max_distance: 7, cost: 500 },
@@ -355,6 +409,10 @@ const loadSettings = async () => {
         free_delivery_threshold: settings.value.free_delivery_threshold !== undefined && settings.value.free_delivery_threshold !== null
           ? Number(settings.value.free_delivery_threshold)
           : 7000,
+        delivery_type: settings.value.delivery_type || 'zones',
+        fixed_delivery_cost: settings.value.fixed_delivery_cost !== undefined && settings.value.fixed_delivery_cost !== null
+          ? Number(settings.value.fixed_delivery_cost)
+          : null,
         delivery_zones: settings.value.delivery_zones && Array.isArray(settings.value.delivery_zones) && settings.value.delivery_zones.length > 0
           ? settings.value.delivery_zones
           : form.value.delivery_zones,

@@ -248,6 +248,30 @@ class DeliveryCalculationService
             ];
         }
 
+        // Если тип доставки - фиксированная, не требуется геокодинг и расчет расстояния
+        if ($this->settings->delivery_type === 'fixed') {
+            // Проверяем, что фиксированная стоимость установлена
+            if ($this->settings->fixed_delivery_cost === null || $this->settings->fixed_delivery_cost < 0) {
+                return [
+                    'valid' => false,
+                    'error' => 'Фиксированная стоимость доставки не настроена',
+                ];
+            }
+
+            // Расчет стоимости доставки (с учетом бесплатной доставки)
+            $cost = $this->settings->getDeliveryCost(0, $cartTotal);
+
+            return [
+                'valid' => true,
+                'address' => $address, // Используем адрес как есть, без геокодинга
+                'coordinates' => null,
+                'distance' => null,
+                'cost' => $cost,
+                'zone' => 'фиксированная',
+            ];
+        }
+
+        // Для типа "зоны" требуется геокодинг и расчет расстояния
         // Проверяем наличие координат точки начала доставки
         if (!$this->settings->origin_latitude || !$this->settings->origin_longitude) {
             return [

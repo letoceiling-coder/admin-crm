@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\DeliveryController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\SettingsController;
 use App\Http\Controllers\Api\DeliverySettingsController;
+use App\Http\Controllers\Api\PaymentMethodSettingsController;
 
 /*
 |--------------------------------------------------------------------------
@@ -49,6 +50,9 @@ Route::prefix('v1')->group(function () {
     Route::get('delivery-settings', [DeliverySettingsController::class, 'getSettings']);
     Route::post('delivery/calculate-cost', [DeliverySettingsController::class, 'calculateCost']);
     Route::post('delivery/address-suggestions', [DeliverySettingsController::class, 'getAddressSuggestions']);
+    
+    // Публичные роуты для способов оплаты (для фронтенда)
+    Route::get('payment-methods', [PaymentMethodSettingsController::class, 'getSettings']);
 });
 
 // Деплой (защищен токеном)
@@ -98,6 +102,10 @@ Route::middleware('auth:sanctum')->group(function () {
         // Настройки доставки
         Route::get('settings/delivery', [DeliverySettingsController::class, 'index']);
         Route::put('settings/delivery', [DeliverySettingsController::class, 'update']);
+        
+        // Настройки способов оплаты
+        Route::get('payment-methods', [PaymentMethodSettingsController::class, 'index']);
+        Route::put('payment-methods/{code}', [PaymentMethodSettingsController::class, 'update']);
     });
 
     // Media API (v1)
