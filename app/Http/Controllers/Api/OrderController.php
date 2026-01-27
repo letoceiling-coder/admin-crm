@@ -18,6 +18,11 @@ class OrderController extends Controller
         $user = $request->user();
         $query = Order::where('user_id', $user->id)->with(['user', 'deliveries', 'payments']);
 
+        // Фильтрация по магазину
+        if ($request->has('shop_id') && $request->get('shop_id')) {
+            $query->where('shop_id', $request->get('shop_id'));
+        }
+
         // Поиск
         if ($request->has('search') && $request->get('search')) {
             $search = trim($request->get('search'));
@@ -81,7 +86,13 @@ class OrderController extends Controller
             'total_amount' => 'required|numeric|min:0',
             'status' => 'nullable|in:pending,processing,completed,cancelled',
             'order_date' => 'nullable|date',
+            'shop_id' => 'required|exists:shops,id',
         ]);
+
+        // Проверяем доступ к магазину
+        if (!$user->hasAccessToShop($validated['shop_id'])) {
+            return response()->json(['message' => 'Доступ к магазину запрещен'], 403);
+        }
 
         // Генерируем номер заказа
         $orderNumber = 'ORD-' . strtoupper(Str::random(8));
@@ -111,6 +122,11 @@ class OrderController extends Controller
             return response()->json(['message' => 'Доступ запрещен'], 403);
         }
 
+        // Проверяем доступ к магазину заказа
+        if ($order->shop_id && !$user->hasAccessToShop($order->shop_id)) {
+            return response()->json(['message' => 'Доступ к магазину запрещен'], 403);
+        }
+
         $order->load(['user', 'deliveries', 'payments']);
         return response()->json($order);
     }
@@ -127,6 +143,11 @@ class OrderController extends Controller
             return response()->json(['message' => 'Доступ запрещен'], 403);
         }
 
+        // Проверяем доступ к магазину заказа
+        if ($order->shop_id && !$user->hasAccessToShop($order->shop_id)) {
+            return response()->json(['message' => 'Доступ к магазину запрещен'], 403);
+        }
+
         $validated = $request->validate([
             'customer_name' => 'sometimes|required|string|max:255',
             'customer_email' => 'nullable|email|max:255',
@@ -136,7 +157,15 @@ class OrderController extends Controller
             'total_amount' => 'sometimes|required|numeric|min:0',
             'status' => 'nullable|in:pending,processing,completed,cancelled',
             'order_date' => 'nullable|date',
+            'shop_id' => 'sometimes|required|exists:shops,id',
         ]);
+
+        // Если shop_id изменяется, проверяем доступ к новому магазину
+        if (isset($validated['shop_id']) && $validated['shop_id'] !== $order->shop_id) {
+            if (!$user->hasAccessToShop($validated['shop_id'])) {
+                return response()->json(['message' => 'Доступ к магазину запрещен'], 403);
+            }
+        }
 
         $order->update($validated);
         $order->load(['user', 'deliveries', 'payments']);
@@ -154,6 +183,11 @@ class OrderController extends Controller
         // Проверяем, что заказ принадлежит пользователю
         if ($order->user_id !== $user->id) {
             return response()->json(['message' => 'Доступ запрещен'], 403);
+        }
+
+        // Проверяем доступ к магазину заказа
+        if ($order->shop_id && !$user->hasAccessToShop($order->shop_id)) {
+            return response()->json(['message' => 'Доступ к магазину запрещен'], 403);
         }
 
         $order->delete();

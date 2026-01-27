@@ -199,11 +199,13 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import apiClient from '@/api/axios';
+import { useShopStore } from '@/stores/shop';
 
 const router = useRouter();
+const shopStore = useShopStore();
 const products = ref([]);
 const categories = ref([]);
 const loading = ref(false);
@@ -229,6 +231,7 @@ const fetchProducts = async (page = 1) => {
     const params = { page, per_page: filters.value.per_page, sort_by: filters.value.sort_by, sort_order: filters.value.sort_order };
     if (filters.value.search) params.search = filters.value.search;
     if (filters.value.category_id) params.category_id = filters.value.category_id === 'null' ? null : filters.value.category_id;
+    if (shopStore.selectedShopId) params.shop_id = shopStore.selectedShopId;
     const response = await apiClient.get('/admin/products', { params });
     products.value = response.data.data || response.data;
     if (response.data.meta) {
@@ -322,6 +325,12 @@ const deleteProduct = async () => {
 
 onMounted(() => {
   fetchProducts();
+  fetchCategories();
+});
+
+// Реактивность на изменение выбранного магазина
+watch(() => shopStore.selectedShopId, () => {
+  fetchProducts(1);
   fetchCategories();
 });
 </script>

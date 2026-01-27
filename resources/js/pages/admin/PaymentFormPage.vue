@@ -216,9 +216,11 @@
 import { ref, onMounted, computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import apiClient from '@/api/axios';
+import { useShopStore } from '@/stores/shop';
 
 const router = useRouter();
 const route = useRoute();
+const shopStore = useShopStore();
 const isEditMode = computed(() => !!route.params.id);
 
 const loading = ref(false);
@@ -289,6 +291,20 @@ const submitForm = async () => {
     }
     if (!data.order_id) {
       delete data.order_id;
+    }
+
+    // shop_id обязателен при создании
+    if (!isEditMode.value) {
+      if (!shopStore.selectedShopId) {
+        error.value = 'Необходимо выбрать магазин';
+        return;
+      }
+      data.shop_id = shopStore.selectedShopId;
+    } else {
+      // При редактировании shop_id должен быть установлен, если не передан явно
+      if (!data.shop_id && shopStore.selectedShopId) {
+        data.shop_id = shopStore.selectedShopId;
+      }
     }
 
     if (isEditMode.value) {

@@ -192,6 +192,7 @@ import { ref, computed, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import apiClient from '@/api/axios';
 import MediaSelector from '@/components/admin/MediaSelector.vue';
+import { useShopStore } from '@/stores/shop';
 
 const router = useRouter();
 const route = useRoute();
@@ -313,6 +314,21 @@ const submitForm = async () => {
   try {
     const data = { ...form.value };
     if (!data.slug) delete data.slug;
+    
+    // shop_id обязателен при создании
+    if (!isEditMode.value) {
+      if (!shopStore.selectedShopId) {
+        error.value = 'Необходимо выбрать магазин';
+        return;
+      }
+      data.shop_id = shopStore.selectedShopId;
+    } else {
+      // При редактировании shop_id должен быть установлен, если не передан явно
+      if (!data.shop_id && shopStore.selectedShopId) {
+        data.shop_id = shopStore.selectedShopId;
+      }
+    }
+    
     if (isEditMode.value) {
       await apiClient.put(`/admin/products/${route.params.id}`, data);
     } else {

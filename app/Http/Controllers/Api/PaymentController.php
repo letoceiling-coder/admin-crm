@@ -18,6 +18,11 @@ class PaymentController extends Controller
         $user = $request->user();
         $query = Payment::where('user_id', $user->id)->with(['user', 'order']);
 
+        // Фильтрация по магазину
+        if ($request->has('shop_id') && $request->get('shop_id')) {
+            $query->where('shop_id', $request->get('shop_id'));
+        }
+
         // Поиск
         if ($request->has('search') && $request->get('search')) {
             $search = trim($request->get('search'));
@@ -100,7 +105,13 @@ class PaymentController extends Controller
             'status' => 'nullable|in:pending,processing,completed,failed,refunded',
             'notes' => 'nullable|string',
             'payment_date' => 'nullable|date',
+            'shop_id' => 'required|exists:shops,id',
         ]);
+
+        // Проверяем доступ к магазину
+        if (!$user->hasAccessToShop($validated['shop_id'])) {
+            return response()->json(['message' => 'Доступ к магазину запрещен'], 403);
+        }
 
         // Проверяем, что заказ принадлежит пользователю (если указан)
         if (isset($validated['order_id'])) {
@@ -139,6 +150,11 @@ class PaymentController extends Controller
             return response()->json(['message' => 'Доступ запрещен'], 403);
         }
 
+        // Проверяем доступ к магазину платежа
+        if ($payment->shop_id && !$user->hasAccessToShop($payment->shop_id)) {
+            return response()->json(['message' => 'Доступ к магазину запрещен'], 403);
+        }
+
         $payment->load(['user', 'order']);
         return response()->json($payment);
     }
@@ -155,6 +171,11 @@ class PaymentController extends Controller
             return response()->json(['message' => 'Доступ запрещен'], 403);
         }
 
+        // Проверяем доступ к магазину платежа
+        if ($payment->shop_id && !$user->hasAccessToShop($payment->shop_id)) {
+            return response()->json(['message' => 'Доступ к магазину запрещен'], 403);
+        }
+
         $validated = $request->validate([
             'order_id' => 'nullable|exists:orders,id',
             'payer_name' => 'sometimes|required|string|max:255',
@@ -166,7 +187,15 @@ class PaymentController extends Controller
             'notes' => 'nullable|string',
             'payment_date' => 'nullable|date',
             'paid_at' => 'nullable|date',
+            'shop_id' => 'sometimes|required|exists:shops,id',
         ]);
+
+        // Если shop_id изменяется, проверяем доступ к новому магазину
+        if (isset($validated['shop_id']) && $validated['shop_id'] !== $payment->shop_id) {
+            if (!$user->hasAccessToShop($validated['shop_id'])) {
+                return response()->json(['message' => 'Доступ к магазину запрещен'], 403);
+            }
+        }
 
         // Проверяем, что заказ принадлежит пользователю (если указан)
         if (isset($validated['order_id'])) {
@@ -197,6 +226,11 @@ class PaymentController extends Controller
         // Проверяем, что платеж принадлежит пользователю
         if ($payment->user_id !== $user->id) {
             return response()->json(['message' => 'Доступ запрещен'], 403);
+        }
+
+        // Проверяем доступ к магазину платежа
+        if ($payment->shop_id && !$user->hasAccessToShop($payment->shop_id)) {
+            return response()->json(['message' => 'Доступ к магазину запрещен'], 403);
         }
 
         $payment->delete();

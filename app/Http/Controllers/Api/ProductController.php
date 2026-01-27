@@ -19,6 +19,11 @@ class ProductController extends Controller
         $user = $request->user();
         $query = Product::where('user_id', $user->id)->with(['category', 'unit', 'image', 'images']);
 
+        // Фильтрация по магазину
+        if ($request->has('shop_id') && $request->get('shop_id')) {
+            $query->where('shop_id', $request->get('shop_id'));
+        }
+
         // Поиск
         if ($request->has('search') && $request->get('search')) {
             $search = trim($request->get('search'));
@@ -98,7 +103,13 @@ class ProductController extends Controller
             'is_active' => 'nullable|boolean',
             'images' => 'nullable|array',
             'images.*' => 'exists:media,id',
+            'shop_id' => 'required|exists:shops,id',
         ]);
+
+        // Проверяем доступ к магазину
+        if (!$user->hasAccessToShop($validated['shop_id'])) {
+            return response()->json(['message' => 'Доступ к магазину запрещен'], 403);
+        }
 
         // Генерируем slug если не указан
         if (empty($validated['slug'])) {
@@ -162,6 +173,11 @@ class ProductController extends Controller
             return response()->json(['message' => 'Доступ запрещен'], 403);
         }
 
+        // Проверяем доступ к магазину товара
+        if ($product->shop_id && !$user->hasAccessToShop($product->shop_id)) {
+            return response()->json(['message' => 'Доступ к магазину запрещен'], 403);
+        }
+
         $product->load(['category', 'unit', 'image', 'images']);
         return response()->json($product);
     }
@@ -176,6 +192,11 @@ class ProductController extends Controller
         // Проверяем, что товар принадлежит пользователю
         if ($product->user_id !== $user->id) {
             return response()->json(['message' => 'Доступ запрещен'], 403);
+        }
+
+        // Проверяем доступ к магазину товара
+        if ($product->shop_id && !$user->hasAccessToShop($product->shop_id)) {
+            return response()->json(['message' => 'Доступ к магазину запрещен'], 403);
         }
 
         $validated = $request->validate([
@@ -197,7 +218,15 @@ class ProductController extends Controller
             'is_active' => 'nullable|boolean',
             'images' => 'nullable|array',
             'images.*' => 'exists:media,id',
+            'shop_id' => 'sometimes|required|exists:shops,id',
         ]);
+
+        // Если shop_id изменяется, проверяем доступ к новому магазину
+        if (isset($validated['shop_id']) && $validated['shop_id'] !== $product->shop_id) {
+            if (!$user->hasAccessToShop($validated['shop_id'])) {
+                return response()->json(['message' => 'Доступ к магазину запрещен'], 403);
+            }
+        }
 
         // Генерируем slug если не указан и изменилось имя
         if (isset($validated['name']) && empty($validated['slug'])) {
@@ -254,6 +283,11 @@ class ProductController extends Controller
         // Проверяем, что товар принадлежит пользователю
         if ($product->user_id !== $user->id) {
             return response()->json(['message' => 'Доступ запрещен'], 403);
+        }
+
+        // Проверяем доступ к магазину товара
+        if ($product->shop_id && !$user->hasAccessToShop($product->shop_id)) {
+            return response()->json(['message' => 'Доступ к магазину запрещен'], 403);
         }
 
         $product->delete();

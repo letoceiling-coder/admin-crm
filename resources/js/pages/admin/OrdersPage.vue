@@ -253,9 +253,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import apiClient from '@/api/axios';
+import { useShopStore } from '@/stores/shop';
 
+const shopStore = useShopStore();
 const orders = ref([]);
 const loading = ref(false);
 const error = ref(null);
@@ -289,6 +291,10 @@ const fetchOrders = async (page = 1) => {
 
     if (filters.value.status) {
       params.status = filters.value.status;
+    }
+
+    if (shopStore.selectedShopId) {
+      params.shop_id = shopStore.selectedShopId;
     }
 
     const response = await apiClient.get('/admin/orders', { params });
@@ -379,5 +385,10 @@ const deleteOrder = async () => {
 
 onMounted(() => {
   fetchOrders();
+});
+
+// Реактивность на изменение выбранного магазина
+watch(() => shopStore.selectedShopId, () => {
+  fetchOrders(1);
 });
 </script>

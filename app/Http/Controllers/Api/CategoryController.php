@@ -19,6 +19,11 @@ class CategoryController extends Controller
         $user = $request->user();
         $query = Category::where('user_id', $user->id)->with(['parent', 'image']);
 
+        // Фильтрация по магазину
+        if ($request->has('shop_id') && $request->get('shop_id')) {
+            $query->where('shop_id', $request->get('shop_id'));
+        }
+
         // Поиск
         if ($request->has('search') && $request->get('search')) {
             $search = trim($request->get('search'));
@@ -81,7 +86,13 @@ class CategoryController extends Controller
             'image_id' => 'nullable|exists:media,id',
             'position' => 'nullable|integer|min:0',
             'is_active' => 'nullable|boolean',
+            'shop_id' => 'required|exists:shops,id',
         ]);
+
+        // Проверяем доступ к магазину
+        if (!$user->hasAccessToShop($validated['shop_id'])) {
+            return response()->json(['message' => 'Доступ к магазину запрещен'], 403);
+        }
 
         // Генерируем slug если не указан
         if (empty($validated['slug'])) {
@@ -104,6 +115,7 @@ class CategoryController extends Controller
         }
 
         $validated['user_id'] = $user->id;
+        
         $category = Category::create($validated);
         $category->load(['parent', 'image']);
 
@@ -122,6 +134,11 @@ class CategoryController extends Controller
             return response()->json(['message' => 'Доступ запрещен'], 403);
         }
 
+        // Проверяем доступ к магазину категории
+        if ($category->shop_id && !$user->hasAccessToShop($category->shop_id)) {
+            return response()->json(['message' => 'Доступ к магазину запрещен'], 403);
+        }
+
         $category->load(['parent', 'image', 'children', 'products']);
         return response()->json($category);
     }
@@ -138,6 +155,11 @@ class CategoryController extends Controller
             return response()->json(['message' => 'Доступ запрещен'], 403);
         }
 
+        // Проверяем доступ к магазину категории
+        if ($category->shop_id && !$user->hasAccessToShop($category->shop_id)) {
+            return response()->json(['message' => 'Доступ к магазину запрещен'], 403);
+        }
+
         $validated = $request->validate([
             'name' => 'sometimes|required|string|max:255',
             'slug' => 'sometimes|nullable|string|max:255|unique:categories,slug,' . $category->id,
@@ -146,7 +168,15 @@ class CategoryController extends Controller
             'image_id' => 'nullable|exists:media,id',
             'position' => 'nullable|integer|min:0',
             'is_active' => 'nullable|boolean',
+            'shop_id' => 'sometimes|required|exists:shops,id',
         ]);
+
+        // Если shop_id изменяется, проверяем доступ к новому магазину
+        if (isset($validated['shop_id']) && $validated['shop_id'] !== $category->shop_id) {
+            if (!$user->hasAccessToShop($validated['shop_id'])) {
+                return response()->json(['message' => 'Доступ к магазину запрещен'], 403);
+            }
+        }
 
         // Генерируем slug если не указан и изменилось имя
         if (isset($validated['name']) && empty($validated['slug'])) {
@@ -176,6 +206,11 @@ class CategoryController extends Controller
         // Проверяем, что категория принадлежит пользователю
         if ($category->user_id !== $user->id) {
             return response()->json(['message' => 'Доступ запрещен'], 403);
+        }
+
+        // Проверяем доступ к магазину категории
+        if ($category->shop_id && !$user->hasAccessToShop($category->shop_id)) {
+            return response()->json(['message' => 'Доступ к магазину запрещен'], 403);
         }
 
         // Проверяем, есть ли дочерние категории или товары

@@ -257,6 +257,20 @@ const submitForm = async () => {
       delete data.order_id;
     }
 
+    // shop_id обязателен при создании
+    if (!isEditMode.value) {
+      if (!shopStore.selectedShopId) {
+        error.value = 'Необходимо выбрать магазин';
+        return;
+      }
+      data.shop_id = shopStore.selectedShopId;
+    } else {
+      // При редактировании shop_id должен быть установлен, если не передан явно
+      if (!data.shop_id && shopStore.selectedShopId) {
+        data.shop_id = shopStore.selectedShopId;
+      }
+    }
+
     if (isEditMode.value) {
       await apiClient.put(`/admin/deliveries/${route.params.id}`, data);
     } else {

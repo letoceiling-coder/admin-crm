@@ -87,7 +87,16 @@ class User extends Authenticatable
      */
     public function isAdmin(): bool
     {
-        return $this->role_id === Role::LEVEL_ADMIN;
+        if (!$this->role_id) {
+            return false;
+        }
+        
+        // Если роль не загружена, загружаем её
+        if (!$this->relationLoaded('role') && !$this->role) {
+            $this->load('role');
+        }
+        
+        return $this->role && $this->role->level === Role::LEVEL_ADMIN;
     }
 
     /**
@@ -95,7 +104,16 @@ class User extends Authenticatable
      */
     public function isManager(): bool
     {
-        return $this->role_id === Role::LEVEL_MANAGER;
+        if (!$this->role_id) {
+            return false;
+        }
+        
+        // Если роль не загружена, загружаем её
+        if (!$this->relationLoaded('role') && !$this->role) {
+            $this->load('role');
+        }
+        
+        return $this->role && $this->role->level === Role::LEVEL_MANAGER;
     }
 
     /**
@@ -103,7 +121,16 @@ class User extends Authenticatable
      */
     public function isDeveloper(): bool
     {
-        return $this->role_id === Role::LEVEL_DEVELOPER;
+        if (!$this->role_id) {
+            return false;
+        }
+        
+        // Если роль не загружена, загружаем её
+        if (!$this->relationLoaded('role') && !$this->role) {
+            $this->load('role');
+        }
+        
+        return $this->role && $this->role->level === Role::LEVEL_DEVELOPER;
     }
 
     /**

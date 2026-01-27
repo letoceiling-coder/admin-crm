@@ -18,6 +18,11 @@ class DeliveryController extends Controller
         $user = $request->user();
         $query = Delivery::where('user_id', $user->id)->with(['user', 'order']);
 
+        // Фильтрация по магазину
+        if ($request->has('shop_id') && $request->get('shop_id')) {
+            $query->where('shop_id', $request->get('shop_id'));
+        }
+
         // Поиск
         if ($request->has('search') && $request->get('search')) {
             $search = trim($request->get('search'));
@@ -85,7 +90,13 @@ class DeliveryController extends Controller
             'notes' => 'nullable|string',
             'status' => 'nullable|in:pending,in_transit,delivered,cancelled',
             'delivery_date' => 'nullable|date',
+            'shop_id' => 'required|exists:shops,id',
         ]);
+
+        // Проверяем доступ к магазину
+        if (!$user->hasAccessToShop($validated['shop_id'])) {
+            return response()->json(['message' => 'Доступ к магазину запрещен'], 403);
+        }
 
         // Проверяем, что заказ принадлежит пользователю (если указан)
         if (isset($validated['order_id'])) {
@@ -123,6 +134,11 @@ class DeliveryController extends Controller
             return response()->json(['message' => 'Доступ запрещен'], 403);
         }
 
+        // Проверяем доступ к магазину доставки
+        if ($delivery->shop_id && !$user->hasAccessToShop($delivery->shop_id)) {
+            return response()->json(['message' => 'Доступ к магазину запрещен'], 403);
+        }
+
         $delivery->load(['user', 'order']);
         return response()->json($delivery);
     }
@@ -139,6 +155,11 @@ class DeliveryController extends Controller
             return response()->json(['message' => 'Доступ запрещен'], 403);
         }
 
+        // Проверяем доступ к магазину доставки
+        if ($delivery->shop_id && !$user->hasAccessToShop($delivery->shop_id)) {
+            return response()->json(['message' => 'Доступ к магазину запрещен'], 403);
+        }
+
         $validated = $request->validate([
             'order_id' => 'nullable|exists:orders,id',
             'recipient_name' => 'sometimes|required|string|max:255',
@@ -148,7 +169,15 @@ class DeliveryController extends Controller
             'status' => 'nullable|in:pending,in_transit,delivered,cancelled',
             'delivery_date' => 'nullable|date',
             'delivered_at' => 'nullable|date',
+            'shop_id' => 'sometimes|required|exists:shops,id',
         ]);
+
+        // Если shop_id изменяется, проверяем доступ к новому магазину
+        if (isset($validated['shop_id']) && $validated['shop_id'] !== $delivery->shop_id) {
+            if (!$user->hasAccessToShop($validated['shop_id'])) {
+                return response()->json(['message' => 'Доступ к магазину запрещен'], 403);
+            }
+        }
 
         // Проверяем, что заказ принадлежит пользователю (если указан)
         if (isset($validated['order_id'])) {
@@ -179,6 +208,11 @@ class DeliveryController extends Controller
         // Проверяем, что доставка принадлежит пользователю
         if ($delivery->user_id !== $user->id) {
             return response()->json(['message' => 'Доступ запрещен'], 403);
+        }
+
+        // Проверяем доступ к магазину доставки
+        if ($delivery->shop_id && !$user->hasAccessToShop($delivery->shop_id)) {
+            return response()->json(['message' => 'Доступ к магазину запрещен'], 403);
         }
 
         $delivery->delete();

@@ -260,11 +260,13 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import apiClient from '@/api/axios';
+import { useShopStore } from '@/stores/shop';
 
 const router = useRouter();
+const shopStore = useShopStore();
 const categories = ref([]);
 const parentCategories = ref([]);
 const loading = ref(false);
@@ -303,6 +305,10 @@ const fetchCategories = async (page = 1) => {
 
     if (filters.value.parent_id) {
       params.parent_id = filters.value.parent_id === 'null' ? null : filters.value.parent_id;
+    }
+
+    if (shopStore.selectedShopId) {
+      params.shop_id = shopStore.selectedShopId;
     }
 
     const response = await apiClient.get('/admin/categories', { params });
@@ -420,6 +426,12 @@ const deleteCategory = async () => {
 
 onMounted(() => {
   fetchCategories();
+  fetchParentCategories();
+});
+
+// Реактивность на изменение выбранного магазина
+watch(() => shopStore.selectedShopId, () => {
+  fetchCategories(1);
   fetchParentCategories();
 });
 </script>

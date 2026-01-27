@@ -257,9 +257,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import apiClient from '@/api/axios';
+import { useShopStore } from '@/stores/shop';
 
+const shopStore = useShopStore();
 const deliveries = ref([]);
 const loading = ref(false);
 const error = ref(null);
@@ -292,6 +294,10 @@ const fetchDeliveries = async (page = 1) => {
 
     if (filters.value.status) {
       params.status = filters.value.status;
+    }
+
+    if (shopStore.selectedShopId) {
+      params.shop_id = shopStore.selectedShopId;
     }
 
     const response = await apiClient.get('/admin/deliveries', { params });
@@ -375,5 +381,10 @@ const deleteDelivery = async () => {
 
 onMounted(() => {
   fetchDeliveries();
+});
+
+// Реактивность на изменение выбранного магазина
+watch(() => shopStore.selectedShopId, () => {
+  fetchDeliveries(1);
 });
 </script>

@@ -270,7 +270,9 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import apiClient from '@/api/axios';
+import { useShopStore } from '@/stores/shop';
 
+const shopStore = useShopStore();
 const payments = ref([]);
 const loading = ref(false);
 const error = ref(null);
@@ -308,6 +310,10 @@ const fetchPayments = async (page = 1) => {
 
     if (filters.value.payment_method) {
       params.payment_method = filters.value.payment_method;
+    }
+
+    if (shopStore.selectedShopId) {
+      params.shop_id = shopStore.selectedShopId;
     }
 
     const response = await apiClient.get('/admin/payments', { params });
@@ -411,5 +417,10 @@ const deletePayment = async () => {
 
 onMounted(() => {
   fetchPayments();
+});
+
+// Реактивность на изменение выбранного магазина
+watch(() => shopStore.selectedShopId, () => {
+  fetchPayments(1);
 });
 </script>
