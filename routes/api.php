@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\Auth\AuthController;
 use App\Http\Controllers\Api\DeployController;
+use App\Http\Controllers\Api\ShopController;
 use App\Http\Controllers\Api\SubscriptionController;
 
 /*
@@ -39,5 +40,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('admin.access')->prefix('admin')->group(function () {
         // Информация о подписке
         Route::get('/subscription', [SubscriptionController::class, 'index']);
+        
+        // Управление магазинами
+        Route::apiResource('shops', ShopController::class);
+        Route::prefix('shops/{shop}')->group(function () {
+            Route::post('/validate-bot-token', [ShopController::class, 'validateBotToken']);
+            Route::get('/bot-info', [ShopController::class, 'getBotInfo']);
+            Route::post('/send-test-message', [ShopController::class, 'sendTestMessage']);
+        });
     });
 });

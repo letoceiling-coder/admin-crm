@@ -1,15 +1,15 @@
 {
   "resources/css/app.css": {
-    "file": "assets/app-aed3a1ac.css",
+    "file": "assets/app-ce9c16fc.css",
     "src": "resources/js/app.css"
   },
   "resources/js/app.css": {
-    "file": "assets/app-aed3a1ac.css",
+    "file": "assets/app-ce9c16fc.css",
     "src": "resources/js/app.css"
   },
   "resources/js/app.js": {
     "css": [
-      "assets/app-aed3a1ac.css"
+      "assets/app-ce9c16fc.css"
     ],
     "dynamicImports": [
       "resources/js/pages/HomePage.vue",
@@ -19,14 +19,17 @@
       "resources/js/pages/admin/auth/ResetPasswordPage.vue",
       "resources/js/layouts/AdminLayout.vue",
       "resources/js/pages/admin/DashboardPage.vue",
+      "resources/js/pages/admin/ShopsPage.vue",
+      "resources/js/pages/admin/ShopFormPage.vue",
+      "resources/js/pages/admin/ShopFormPage.vue",
       "resources/js/pages/admin/SubscriptionPage.vue"
     ],
-    "file": "assets/app-4b885487.js",
+    "file": "assets/app-a8a57de0.js",
     "isEntry": true,
     "src": "resources/js/app.js"
   },
   "resources/js/layouts/AdminLayout.vue": {
-    "file": "assets/AdminLayout-27961bb2.js",
+    "file": "assets/AdminLayout-5d495de7.js",
     "imports": [
       "resources/js/app.js"
     ],
@@ -34,7 +37,7 @@
     "src": "resources/js/layouts/AdminLayout.vue"
   },
   "resources/js/pages/HomePage.vue": {
-    "file": "assets/HomePage-742fa03b.js",
+    "file": "assets/HomePage-1ffe87d3.js",
     "imports": [
       "resources/js/app.js"
     ],
@@ -42,15 +45,31 @@
     "src": "resources/js/pages/HomePage.vue"
   },
   "resources/js/pages/admin/DashboardPage.vue": {
-    "file": "assets/DashboardPage-1e98b543.js",
+    "file": "assets/DashboardPage-d0d248de.js",
     "imports": [
       "resources/js/app.js"
     ],
     "isDynamicEntry": true,
     "src": "resources/js/pages/admin/DashboardPage.vue"
   },
+  "resources/js/pages/admin/ShopFormPage.vue": {
+    "file": "assets/ShopFormPage-544f9af9.js",
+    "imports": [
+      "resources/js/app.js"
+    ],
+    "isDynamicEntry": true,
+    "src": "resources/js/pages/admin/ShopFormPage.vue"
+  },
+  "resources/js/pages/admin/ShopsPage.vue": {
+    "file": "assets/ShopsPage-092accd2.js",
+    "imports": [
+      "resources/js/app.js"
+    ],
+    "isDynamicEntry": true,
+    "src": "resources/js/pages/admin/ShopsPage.vue"
+  },
   "resources/js/pages/admin/SubscriptionPage.vue": {
-    "file": "assets/SubscriptionPage-d04d2a31.js",
+    "file": "assets/SubscriptionPage-4ae89372.js",
     "imports": [
       "resources/js/app.js"
     ],
@@ -58,7 +77,7 @@
     "src": "resources/js/pages/admin/SubscriptionPage.vue"
   },
   "resources/js/pages/admin/auth/ForgotPasswordPage.vue": {
-    "file": "assets/ForgotPasswordPage-f71c4212.js",
+    "file": "assets/ForgotPasswordPage-4bc4f4de.js",
     "imports": [
       "resources/js/app.js"
     ],
@@ -66,7 +85,7 @@
     "src": "resources/js/pages/admin/auth/ForgotPasswordPage.vue"
   },
   "resources/js/pages/admin/auth/LoginPage.vue": {
-    "file": "assets/LoginPage-00dd07f1.js",
+    "file": "assets/LoginPage-d537f651.js",
     "imports": [
       "resources/js/app.js"
     ],
@@ -74,7 +93,7 @@
     "src": "resources/js/pages/admin/auth/LoginPage.vue"
   },
   "resources/js/pages/admin/auth/RegisterPage.vue": {
-    "file": "assets/RegisterPage-187e6c83.js",
+    "file": "assets/RegisterPage-e31045f6.js",
     "imports": [
       "resources/js/app.js"
     ],
@@ -82,7 +101,7 @@
     "src": "resources/js/pages/admin/auth/RegisterPage.vue"
   },
   "resources/js/pages/admin/auth/ResetPasswordPage.vue": {
-    "file": "assets/ResetPasswordPage-1bd47a5a.js",
+    "file": "assets/ResetPasswordPage-e68d2bc3.js",
     "imports": [
       "resources/js/app.js"
     ],

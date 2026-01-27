@@ -45,6 +45,24 @@ const routes = [
         meta: { title: 'Панель управления' },
       },
       {
+        path: 'shops',
+        name: 'admin.shops.index',
+        component: () => import('../pages/admin/ShopsPage.vue'),
+        meta: { title: 'Магазины' },
+      },
+      {
+        path: 'shops/create',
+        name: 'admin.shops.create',
+        component: () => import('../pages/admin/ShopFormPage.vue'),
+        meta: { title: 'Создание магазина' },
+      },
+      {
+        path: 'shops/:id/edit',
+        name: 'admin.shops.edit',
+        component: () => import('../pages/admin/ShopFormPage.vue'),
+        meta: { title: 'Редактирование магазина' },
+      },
+      {
         path: 'subscription',
         name: 'admin.subscription',
         component: () => import('../pages/admin/SubscriptionPage.vue'),
