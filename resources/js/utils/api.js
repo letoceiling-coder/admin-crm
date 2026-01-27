@@ -33,7 +33,7 @@ const API_BASE = '/api/v1';
 
 // Получить заголовки авторизации
 const getAuthHeaders = () => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('auth_token');
     const headers = {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
