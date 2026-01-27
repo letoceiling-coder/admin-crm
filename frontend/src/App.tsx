@@ -4,6 +4,7 @@ import { CatalogPage } from './pages/CatalogPage';
 import { ProductDetailPage } from './pages/ProductDetailPage';
 import { CartPage } from './pages/CartPage';
 import { CheckoutPage } from './pages/CheckoutPage';
+import { SearchPage } from './pages/SearchPage';
 import './index.css';
 
 const queryClient = new QueryClient({
@@ -21,6 +22,7 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/:shopSlug" element={<CatalogPage />} />
+          <Route path="/:shopSlug/search" element={<SearchPage />} />
           <Route path="/:shopSlug/product/:productId" element={<ProductDetailPage />} />
           <Route path="/:shopSlug/cart" element={<CartPage />} />
           <Route path="/:shopSlug/checkout" element={<CheckoutPage />} />

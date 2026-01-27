@@ -1,22 +1,36 @@
-import { Home, ShoppingCart, User, Heart } from 'lucide-react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { Home, ShoppingCart, User, Heart, type LucideIcon } from 'lucide-react';
+import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useCartStore } from '@/store/cartStore';
 
+type NavItem = {
+  icon: LucideIcon;
+  label: string;
+  path: string;
+  exact: boolean;
+  badge?: number;
+};
+
 export function BottomNavigation() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { shopSlug } = useParams<{ shopSlug?: string }>();
   const totalItems = useCartStore((state) => state.getTotalItems());
 
-  const isActive = (path: string) => location.pathname.startsWith(path);
-
-  const navItems = [
-    { icon: Home, label: 'Каталог', path: '/' },
-    { icon: Heart, label: 'Избранное', path: '/favorites' },
-    { icon: ShoppingCart, label: 'Корзина', path: '/cart', badge: totalItems > 0 ? totalItems : undefined },
-    { icon: User, label: 'Профиль', path: '/profile' },
+  const base = shopSlug ? `/${shopSlug}` : '';
+  const navItems: NavItem[] = [
+    { icon: Home, label: 'Каталог', path: base || '/', exact: true },
+    { icon: Heart, label: 'Избранное', path: `${base}/favorites`, exact: false },
+    { icon: ShoppingCart, label: 'Корзина', path: `${base}/cart`, exact: false, badge: totalItems > 0 ? totalItems : undefined },
+    { icon: User, label: 'Профиль', path: `${base}/profile`, exact: false },
   ];
+
+  const isActive = (path: string, exact?: boolean) => {
+    if (!path) return false;
+    if (exact) return location.pathname === path || location.pathname === path + '/';
+    return location.pathname.startsWith(path);
+  };
 
   return (
     <motion.nav
@@ -27,8 +41,8 @@ export function BottomNavigation() {
       <div className="flex h-16 items-center justify-around">
         {navItems.map((item) => {
           const Icon = item.icon;
-          const active = isActive(item.path);
-          
+          const active = isActive(item.path, item.exact);
+
           return (
             <motion.button
               key={item.path}
@@ -50,7 +64,7 @@ export function BottomNavigation() {
                   />
                 )}
                 <Icon className={cn("h-6 w-6 relative z-10", active && "drop-shadow-lg")} />
-                {item.badge && item.badge > 0 && (
+                {item.badge != null && item.badge > 0 && (
                   <motion.span
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}

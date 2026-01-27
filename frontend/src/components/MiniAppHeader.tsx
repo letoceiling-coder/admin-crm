@@ -1,5 +1,5 @@
 import { ChevronLeft, Search } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
@@ -17,6 +17,15 @@ export function MiniAppHeader({
   className 
 }: MiniAppHeaderProps) {
   const navigate = useNavigate();
+  const { shopSlug } = useParams<{ shopSlug?: string }>();
+
+  const handleSearchClick = () => {
+    if (shopSlug) {
+      navigate(`/${shopSlug}/search`);
+    } else {
+      navigate('/search');
+    }
+  };
 
   return (
     <motion.header
@@ -52,7 +61,7 @@ export function MiniAppHeader({
           <motion.button
             whileHover={{ scale: 1.1, rotate: 5 }}
             whileTap={{ scale: 0.9 }}
-            onClick={() => navigate('/search')}
+            onClick={handleSearchClick}
             className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-red-500 to-pink-600 text-white shadow-lg"
             aria-label="Поиск"
           >
