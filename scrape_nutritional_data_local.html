@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Сбор питательных веществ с pirogi.ru</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+        }
+        .controls {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 4px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .status {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .product-item {
+            padding: 10px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .product-item.success {
+            background: #d4edda;
+        }
+        .product-item.error {
+            background: #f8d7da;
+        }
+        .product-item.pending {
+            background: #fff3cd;
+        }
+        textarea {
+            width: 100%;
+            height: 300px;
+            font-family: monospace;
+            font-size: 12px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .instructions {
+            background: #e7f3ff;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            border-left: 4px solid #007bff;
+        }
+        .instructions ol {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        .instructions li {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Сбор питательных веществ с pirogi.ru</h1>
+        
+        <div class="instructions">
+            <h3>Инструкция:</h3>
+            <ol>
+                <li>Откройте <a href="https://pirogi.ru/" target="_blank">https://pirogi.ru/</a> в новой вкладке</li>
+                <li>Вставьте JSON данные товаров в поле ниже (из файла storage/pirogi_data.json)</li>
+                <li>Нажмите "Начать сбор данных"</li>
+                <li>Скрипт будет открывать страницы товаров и собирать данные</li>
+                <li>После завершения скопируйте обновленный JSON и сохраните в storage/pirogi_data.json на сервере</li>
+            </ol>
+        </div>
+
+        <div class="controls">
+            <label>
+                <strong>JSON данные товаров:</strong><br>
+                <textarea id="productsJson" placeholder='Вставьте JSON из storage/pirogi_data.json'></textarea>
+            </label>
+            <br><br>
+            <button id="startBtn" onclick="startScraping()">Начать сбор данных</button>
+            <button id="stopBtn" onclick="stopScraping()" disabled>Остановить</button>
+            <button onclick="copyResult()">Копировать результат</button>
+        </div>
+
+        <div id="status" class="status info" style="display: none;"></div>
+
+        <div id="productsList"></div>
+
+        <div style="margin-top: 20px;">
+            <label>
+                <strong>Результат (обновленный JSON):</strong><br>
+                <textarea id="resultJson" readonly></textarea>
+            </label>
+        </div>
+    </div>
+
+    <script>
+        let products = [];
+        let currentIndex = 0;
+        let isRunning = false;
+        let results = {};
+
+        function updateStatus(message, type = 'info') {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = `status ${type}`;
+            status.style.display = 'block';
+        }
+
+        function startScraping() {
+            const jsonText = document.getElementById('productsJson').value.trim();
+            if (!jsonText) {
+                alert('Вставьте JSON данные товаров!');
+                return;
+            }
+
+            try {
+                const data = JSON.parse(jsonText);
+                if (!data.products || !Array.isArray(data.products)) {
+                    alert('Неверный формат JSON! Ожидается объект с массивом products');
+                    return;
+                }
+
+                products = data.products;
+                results = JSON.parse(JSON.stringify(data));
+                currentIndex = 0;
+                isRunning = true;
+
+                document.getElementById('startBtn').disabled = true;
+                document.getElementById('stopBtn').disabled = false;
+
+                updateStatus(`Найдено товаров: ${products.length}. Начинаем сбор...`, 'info');
+                renderProductsList();
+                processNext();
+            } catch (e) {
+                alert('Ошибка парсинга JSON: ' + e.message);
+            }
+        }
+
+        function stopScraping() {
+            isRunning = false;
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = true;
+            updateStatus('Сбор данных остановлен', 'info');
+        }
+
+        function processNext() {
+            if (!isRunning || currentIndex >= products.length) {
+                finish();
+                return;
+            }
+
+            const product = products[currentIndex];
+            updateProductStatus(currentIndex, 'pending', `Обработка: ${product.name}...`);
+
+            // Формируем URL для поиска товара
+            const searchUrl = `https://pirogi.ru/?search=${encodeURIComponent(product.name)}`;
+            
+            // Открываем страницу товара в новой вкладке
+            const newWindow = window.open(searchUrl, `product_${currentIndex}`, 'width=1200,height=800');
+            
+            if (!newWindow) {
+                updateProductStatus(currentIndex, 'error', 'Не удалось открыть окно (блокировщик?)');
+                currentIndex++;
+                setTimeout(processNext, 1000);
+                return;
+            }
+
+            // Ждем загрузки страницы
+            setTimeout(() => {
+                try {
+                    // Пытаемся получить данные из открытого окна
+                    const productData = extractProductData(newWindow, product);
+                    
+                    if (productData) {
+                        // Обновляем данные
+                        results.products[currentIndex] = {
+                            ...product,
+                            ...productData
+                        };
+                        updateProductStatus(currentIndex, 'success', 
+                            `✓ ${productData.weight ? 'вес: ' + productData.weight + 'г, ' : ''}` +
+                            `${productData.protein ? 'Б: ' + productData.protein + ', ' : ''}` +
+                            `${productData.fat ? 'Ж: ' + productData.fat + ', ' : ''}` +
+                            `${productData.carbs ? 'У: ' + productData.carbs + ', ' : ''}` +
+                            `${productData.calories ? 'ккал: ' + productData.calories : ''}`
+                        );
+                    } else {
+                        updateProductStatus(currentIndex, 'error', 'Данные не найдены');
+                    }
+                } catch (e) {
+                    updateProductStatus(currentIndex, 'error', 'Ошибка: ' + e.message);
+                } finally {
+                    newWindow.close();
+                }
+
+                currentIndex++;
+                updateStatus(`Обработано: ${currentIndex}/${products.length}`, 'info');
+                updateResult();
+                
+                setTimeout(processNext, 2000); // Задержка между запросами
+            }, 3000); // Ждем 3 секунды на загрузку страницы
+        }
+
+        function extractProductData(win, product) {
+            try {
+                const doc = win.document;
+                if (!doc) return null;
+
+                const result = {};
+
+                // Извлекаем вес: <div class="id-weight">250 гр</div>
+                const weightEl = doc.querySelector('.id-weight');
+                if (weightEl) {
+                    const weightText = weightEl.textContent.trim();
+                    const match = weightText.match(/(\d+)\s*гр?/i);
+                    if (match) {
+                        result.weight = parseInt(match[1]);
+                    }
+                }
+
+                // Извлекаем питательные вещества
+                const paramItems = doc.querySelectorAll('.id-params-item');
+                paramItems.forEach(item => {
+                    const titleEl = item.querySelector('.title');
+                    const valueEl = item.querySelector('.value');
+                    
+                    if (titleEl && valueEl) {
+                        const title = titleEl.textContent.trim().toLowerCase();
+                        const valueText = valueEl.textContent.trim();
+                        const match = valueText.match(/([\d.]+)/);
+                        
+                        if (match) {
+                            const value = parseFloat(match[1]);
+                            
+                            if (title.includes('белк')) {
+                                result.protein = value;
+                            } else if (title.includes('жир')) {
+                                result.fat = value;
+                            } else if (title.includes('углевод')) {
+                                result.carbs = value;
+                            } else if (title.includes('калори')) {
+                                result.calories = parseInt(value);
+                            }
+                        }
+                    }
+                });
+
+                return Object.keys(result).length > 0 ? result : null;
+            } catch (e) {
+                console.error('Ошибка извлечения данных:', e);
+                return null;
+            }
+        }
+
+        function renderProductsList() {
+            const list = document.getElementById('productsList');
+            list.innerHTML = '';
+            
+            products.forEach((product, index) => {
+                const div = document.createElement('div');
+                div.className = 'product-item';
+                div.id = `product-${index}`;
+                div.innerHTML = `
+                    <span><strong>${index + 1}.</strong> ${product.name}</span>
+                    <span id="status-${index}">Ожидание...</span>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        function updateProductStatus(index, status, message) {
+            const item = document.getElementById(`product-${index}`);
+            const statusEl = document.getElementById(`status-${index}`);
+            
+            if (item) {
+                item.className = `product-item ${status}`;
+            }
+            if (statusEl) {
+                statusEl.textContent = message;
+            }
+        }
+
+        function updateResult() {
+            document.getElementById('resultJson').value = JSON.stringify(results, null, 2);
+        }
+
+        function finish() {
+            isRunning = false;
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = true;
+            updateStatus(`Готово! Обработано товаров: ${currentIndex}`, 'success');
+            updateResult();
+        }
+
+        function copyResult() {
+            const result = document.getElementById('resultJson');
+            result.select();
+            document.execCommand('copy');
+            alert('JSON скопирован в буфер обмена!');
+        }
+    </script>
+</body>
+</html>
