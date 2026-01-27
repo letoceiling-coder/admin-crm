@@ -74,6 +74,12 @@ const routes = [
         component: () => import('../pages/admin/MediaPage.vue'),
         meta: { title: 'Медиа' },
       },
+      {
+        path: 'settings',
+        name: 'admin.settings',
+        component: () => import('../pages/admin/SettingsPage.vue'),
+        meta: { title: 'Настройки' },
+      },
       // Каталог
       {
         path: 'categories',

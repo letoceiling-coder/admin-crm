@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\UnitController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\DeliveryController;
 use App\Http\Controllers\Api\PaymentController;
+use App\Http\Controllers\Api\SettingsController;
 
 /*
 |--------------------------------------------------------------------------
@@ -40,6 +41,7 @@ Route::get('/shops/slug/{slug}', [ShopController::class, 'getBySlug']);
 Route::get('/shops/{shopId}/categories', [CategoryController::class, 'getByShop']);
 Route::get('/shops/{shopId}/products', [ProductController::class, 'getByShop']);
 Route::get('/products/{product}', [ProductController::class, 'show'])->where('product', '[0-9]+');
+Route::get('/settings/default-image', [SettingsController::class, 'getDefaultImage']);
 
 // Деплой (защищен токеном)
 Route::post('/deploy', [DeployController::class, 'deploy'])
@@ -80,6 +82,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('orders', OrderController::class);
         Route::apiResource('deliveries', DeliveryController::class);
         Route::apiResource('payments', PaymentController::class);
+
+        // Управление настройками
+        Route::get('settings', [SettingsController::class, 'index']);
+        Route::put('settings', [SettingsController::class, 'update']);
     });
 
     // Media API (v1)

@@ -96,3 +96,10 @@ export const productApi = {
     return response.data || [];
   },
 };
+
+// Settings API
+export const settingsApi = {
+  getDefaultImage: async (): Promise<{ image: { id: number; url: string; name: string } | null }> => {
+    return fetchApi<{ image: { id: number; url: string; name: string } | null }>('/settings/default-image');
+  },
+};

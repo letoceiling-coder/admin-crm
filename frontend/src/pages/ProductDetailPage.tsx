@@ -6,7 +6,7 @@ import { ProductCard } from '@/components/ProductCard';
 import { useQuery } from '@tanstack/react-query';
 import { productApi } from '@/services/api';
 import type { Product } from '@/types';
-import { getImageUrl } from '@/lib/utils';
+import { getImageUrl, handleImageError } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useState } from 'react';
 
@@ -93,6 +93,7 @@ export function ProductDetailPage() {
                     src={img}
                     alt={`${product.name} ${index + 1}`}
                     className="w-full h-full object-cover"
+                    onError={handleImageError}
                   />
                 </motion.button>
               ))}

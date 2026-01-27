@@ -3,7 +3,7 @@ import { Plus, Minus, Heart } from 'lucide-react';
 import type { Product } from '@/types';
 import { useCartStore } from '@/store/cartStore';
 import { cn } from '@/lib/utils';
-import { getImageUrl } from '@/lib/utils';
+import { getImageUrl, handleImageError } from '@/lib/utils';
 import { useState } from 'react';
 
 interface ProductCardProps {
@@ -48,6 +48,7 @@ export function ProductCard({ product, onClick, variant = 'grid' }: ProductCardP
             alt={product.name}
             className="h-full w-full object-cover"
             loading="lazy"
+            onError={handleImageError}
           />
         </div>
 
@@ -132,6 +133,7 @@ export function ProductCard({ product, onClick, variant = 'grid' }: ProductCardP
           loading="lazy"
           whileHover={{ scale: 1.05 }}
           transition={{ duration: 0.3 }}
+          onError={handleImageError}
         />
       </div>
 
