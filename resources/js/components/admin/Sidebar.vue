@@ -77,6 +77,85 @@
         </svg>
         <span v-if="!isCollapsed">Подписка</span>
       </router-link>
+      <!-- Каталог -->
+      <div class="space-y-1">
+        <button
+          @click="toggleCatalogMenu"
+          class="w-full flex items-center rounded-xl text-sm font-medium transition-all px-4 py-3 gap-3"
+          :class="[
+            isCollapsed ? 'justify-center' : '',
+            isCatalogMenuOpen || isCatalogRoute
+              ? 'bg-gray-800 text-white' 
+              : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+          ]"
+        >
+          <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path>
+          </svg>
+          <span v-if="!isCollapsed" class="flex-1 text-left">Каталог</span>
+          <svg
+            v-if="!isCollapsed"
+            class="h-4 w-4 transition-transform"
+            :class="{ 'rotate-180': isCatalogMenuOpen }"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+          </svg>
+        </button>
+        <div
+          v-if="!isCollapsed && isCatalogMenuOpen"
+          class="ml-4 space-y-1 pl-4 border-l-2 border-gray-700"
+        >
+          <router-link
+            to="/admin/categories"
+            class="flex items-center rounded-lg text-sm font-medium transition-all px-4 py-2 gap-3"
+            :class="[
+              route.name === 'admin.categories.index' || route.name === 'admin.categories.create' || route.name === 'admin.categories.edit'
+                ? 'bg-gray-700 text-white' 
+                : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+            ]"
+            @click="handleMobileMenuClick"
+          >
+            <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+            </svg>
+            <span>Категории</span>
+          </router-link>
+          <router-link
+            to="/admin/products"
+            class="flex items-center rounded-lg text-sm font-medium transition-all px-4 py-2 gap-3"
+            :class="[
+              route.name === 'admin.products.index' || route.name === 'admin.products.create' || route.name === 'admin.products.edit'
+                ? 'bg-gray-700 text-white' 
+                : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+            ]"
+            @click="handleMobileMenuClick"
+          >
+            <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+            </svg>
+            <span>Товары</span>
+          </router-link>
+        </div>
+      </div>
+      <router-link
+        to="/admin/units"
+        class="flex items-center rounded-xl text-sm font-medium transition-all px-4 py-3 gap-3"
+        :class="[
+          isCollapsed ? 'justify-center' : '',
+          route.name === 'admin.units.index' || route.name === 'admin.units.create' || route.name === 'admin.units.edit'
+            ? 'bg-gray-800 text-white' 
+            : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+        ]"
+        @click="handleMobileMenuClick"
+      >
+        <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+        </svg>
+        <span v-if="!isCollapsed">Единицы измерения</span>
+      </router-link>
       <router-link
         to="/admin/media"
         class="flex items-center rounded-xl text-sm font-medium transition-all px-4 py-3 gap-3"
@@ -131,8 +210,27 @@ const mobileMenu = inject('mobileMenu', null);
 
 const isCollapsed = ref(localStorage.getItem('sidebarCollapsed') === 'true');
 const isMobileMenuOpen = computed(() => mobileMenu?.isOpen?.value ?? false);
+const isCatalogMenuOpen = ref(localStorage.getItem('catalogMenuOpen') === 'true');
 
 const user = computed(() => authStore.user);
+
+const isCatalogRoute = computed(() => {
+  const catalogRoutes = [
+    'admin.categories.index',
+    'admin.categories.create',
+    'admin.categories.edit',
+    'admin.products.index',
+    'admin.products.create',
+    'admin.products.edit',
+  ];
+  return catalogRoutes.includes(route.name);
+});
+
+const toggleCatalogMenu = () => {
+  if (isCollapsed.value) return;
+  isCatalogMenuOpen.value = !isCatalogMenuOpen.value;
+  localStorage.setItem('catalogMenuOpen', isCatalogMenuOpen.value.toString());
+};
 
 const userInitials = computed(() => {
   if (!user.value?.name) return 'U';
@@ -154,4 +252,10 @@ const handleMobileMenuClick = () => {
     mobileMenu.close();
   }
 };
+
+// Автоматически открываем меню каталога если мы на странице каталога
+if (isCatalogRoute.value && !isCatalogMenuOpen.value) {
+  isCatalogMenuOpen.value = true;
+  localStorage.setItem('catalogMenuOpen', 'true');
+}
 </script>

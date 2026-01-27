@@ -74,6 +74,61 @@ const routes = [
         component: () => import('../pages/admin/MediaPage.vue'),
         meta: { title: 'Медиа' },
       },
+      // Каталог
+      {
+        path: 'categories',
+        name: 'admin.categories.index',
+        component: () => import('../pages/admin/CategoriesPage.vue'),
+        meta: { title: 'Категории' },
+      },
+      {
+        path: 'categories/create',
+        name: 'admin.categories.create',
+        component: () => import('../pages/admin/CategoryFormPage.vue'),
+        meta: { title: 'Создание категории' },
+      },
+      {
+        path: 'categories/:id/edit',
+        name: 'admin.categories.edit',
+        component: () => import('../pages/admin/CategoryFormPage.vue'),
+        meta: { title: 'Редактирование категории' },
+      },
+      {
+        path: 'products',
+        name: 'admin.products.index',
+        component: () => import('../pages/admin/ProductsPage.vue'),
+        meta: { title: 'Товары' },
+      },
+      {
+        path: 'products/create',
+        name: 'admin.products.create',
+        component: () => import('../pages/admin/ProductFormPage.vue'),
+        meta: { title: 'Создание товара' },
+      },
+      {
+        path: 'products/:id/edit',
+        name: 'admin.products.edit',
+        component: () => import('../pages/admin/ProductFormPage.vue'),
+        meta: { title: 'Редактирование товара' },
+      },
+      {
+        path: 'units',
+        name: 'admin.units.index',
+        component: () => import('../pages/admin/UnitsPage.vue'),
+        meta: { title: 'Единицы измерения' },
+      },
+      {
+        path: 'units/create',
+        name: 'admin.units.create',
+        component: () => import('../pages/admin/UnitFormPage.vue'),
+        meta: { title: 'Создание единицы измерения' },
+      },
+      {
+        path: 'units/:id/edit',
+        name: 'admin.units.edit',
+        component: () => import('../pages/admin/UnitFormPage.vue'),
+        meta: { title: 'Редактирование единицы измерения' },
+      },
     ],
   },
 ];

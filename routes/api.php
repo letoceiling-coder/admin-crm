@@ -8,6 +8,9 @@ use App\Http\Controllers\Api\ShopController;
 use App\Http\Controllers\Api\SubscriptionController;
 use App\Http\Controllers\Api\v1\FolderController;
 use App\Http\Controllers\Api\v1\MediaController;
+use App\Http\Controllers\Api\CategoryController;
+use App\Http\Controllers\Api\ProductController;
+use App\Http\Controllers\Api\UnitController;
 
 /*
 |--------------------------------------------------------------------------
@@ -50,6 +53,19 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/bot-info', [ShopController::class, 'getBotInfo']);
             Route::post('/send-test-message', [ShopController::class, 'sendTestMessage']);
         });
+
+        // Управление каталогом
+        // Категории
+        Route::post('categories/update-positions', [CategoryController::class, 'updatePositions']);
+        Route::apiResource('categories', CategoryController::class);
+        
+        // Товары
+        Route::post('products/update-positions', [ProductController::class, 'updatePositions']);
+        Route::apiResource('products', ProductController::class);
+        
+        // Единицы измерения
+        Route::post('units/update-positions', [UnitController::class, 'updatePositions']);
+        Route::apiResource('units', UnitController::class);
     });
 
     // Media API (v1)

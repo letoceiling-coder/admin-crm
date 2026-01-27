@@ -14,6 +14,7 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             RoleSeeder::class,
+            // PirogiSeeder::class, // Раскомментируйте для импорта данных с pirogi.ru
         ]);
     }
 }
