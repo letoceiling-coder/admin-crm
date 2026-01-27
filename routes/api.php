@@ -44,6 +44,13 @@ Route::get('/shops/{shopId}/products', [ProductController::class, 'getByShop']);
 Route::get('/products/{product}', [ProductController::class, 'show'])->where('product', '[0-9]+');
 Route::get('/settings/default-image', [SettingsController::class, 'getDefaultImage']);
 
+// Публичные роуты для настроек доставки (для фронтенда)
+Route::prefix('v1')->group(function () {
+    Route::get('delivery-settings', [DeliverySettingsController::class, 'getSettings']);
+    Route::post('delivery/calculate-cost', [DeliverySettingsController::class, 'calculateCost']);
+    Route::post('delivery/address-suggestions', [DeliverySettingsController::class, 'getAddressSuggestions']);
+});
+
 // Деплой (защищен токеном)
 Route::post('/deploy', [DeployController::class, 'deploy'])
     ->middleware('deploy.token');

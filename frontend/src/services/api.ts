@@ -44,9 +44,31 @@ async function fetchApi<T>(
     headers: headers as HeadersInit,
   });
 
+  // Проверяем Content-Type перед парсингом JSON
+  const contentType = response.headers.get('content-type');
+  const isJson = contentType && contentType.includes('application/json');
+
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'Ошибка запроса' }));
+    let error;
+    if (isJson) {
+      try {
+        error = await response.json();
+      } catch (e) {
+        error = { message: `HTTP error! status: ${response.status}` };
+      }
+    } else {
+      // Если ответ не JSON (например, HTML страница ошибки), читаем как текст
+      const text = await response.text();
+      error = { 
+        message: `HTTP error! status: ${response.status}. Server returned: ${text.substring(0, 100)}` 
+      };
+    }
     throw new Error(error.message || `HTTP error! status: ${response.status}`);
+  }
+
+  if (!isJson) {
+    const text = await response.text();
+    throw new Error(`Expected JSON but got: ${text.substring(0, 100)}`);
   }
 
   return response.json();
