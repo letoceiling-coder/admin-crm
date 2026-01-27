@@ -65,7 +65,7 @@
           class="cursor-pointer"
           @click="handleFolderClick(folder)"
         >
-          <div class="relative aspect-square mb-2 bg-transparent rounded-lg overflow-hidden flex items-center justify-center">
+          <div class="relative aspect-square mb-2 bg-transparent rounded-lg overflow-hidden flex items-center justify-center hover:bg-accent/5 transition-colors">
             <img 
               :src="getFolderIcon(folder)" 
               :alt="folder.name"
@@ -76,13 +76,15 @@
               {{ folder.count || 0 }}
             </div>
           </div>
-          <p class="text-sm font-medium text-center text-foreground truncate">{{ folder.name }}</p>
-          <p class="text-xs text-muted-foreground text-center">{{ folder.count || 0 }} файлов</p>
+          <div class="text-center">
+            <p class="text-sm font-medium text-foreground truncate">{{ folder.name }}</p>
+            <p v-if="folder.count !== undefined" class="text-xs text-muted-foreground">{{ folder.count || 0 }} файлов</p>
+          </div>
         </div>
         <button
           v-if="!folder.protected && !selectionMode"
           @click.stop="handleDeleteFolder(folder)"
-          class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity w-6 h-6 flex items-center justify-center bg-destructive text-white rounded text-xs hover:bg-destructive/90"
+          class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity w-6 h-6 flex items-center justify-center bg-destructive text-white rounded text-xs hover:bg-destructive/90 z-20"
           title="Удалить папку"
         >
           ✕
