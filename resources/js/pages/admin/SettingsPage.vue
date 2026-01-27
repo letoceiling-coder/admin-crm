@@ -19,6 +19,30 @@
     </div>
 
     <form v-if="!loading" @submit.prevent="submitForm" class="space-y-6">
+      <!-- Навигация по настройкам -->
+      <div class="bg-white rounded-lg border border-gray-200 p-4 mb-6">
+        <div class="flex gap-4">
+          <router-link
+            to="/admin/settings"
+            class="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+            :class="route.name === 'admin.settings' 
+              ? 'bg-blue-600 text-white' 
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
+          >
+            Общие
+          </router-link>
+          <router-link
+            to="/admin/settings/delivery"
+            class="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+            :class="route.name === 'admin.settings.delivery' 
+              ? 'bg-blue-600 text-white' 
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
+          >
+            Доставка
+          </router-link>
+        </div>
+      </div>
+
       <!-- Фото по умолчанию -->
       <div class="bg-white rounded-lg border border-gray-200 p-6">
         <h2 class="text-lg font-semibold text-gray-900 mb-4">Фото по умолчанию</h2>
@@ -86,9 +110,12 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
+import { useRoute } from 'vue-router';
 import apiClient from '@/api/axios';
 import MediaSelector from '@/components/admin/MediaSelector.vue';
 import Swal from 'sweetalert2';
+
+const route = useRoute();
 
 const loading = ref(false);
 const submitting = ref(false);

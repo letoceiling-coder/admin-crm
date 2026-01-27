@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\DeliveryController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\SettingsController;
+use App\Http\Controllers\Api\DeliverySettingsController;
 
 /*
 |--------------------------------------------------------------------------
@@ -86,6 +87,10 @@ Route::middleware('auth:sanctum')->group(function () {
         // Управление настройками
         Route::get('settings', [SettingsController::class, 'index']);
         Route::put('settings', [SettingsController::class, 'update']);
+        
+        // Настройки доставки
+        Route::get('settings/delivery', [DeliverySettingsController::class, 'index']);
+        Route::put('settings/delivery', [DeliverySettingsController::class, 'update']);
     });
 
     // Media API (v1)

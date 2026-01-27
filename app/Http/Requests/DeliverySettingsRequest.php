@@ -1,0 +1,62 @@
+<?php
+
+namespace App\Http\Requests;
+
+use Illuminate\Foundation\Http\FormRequest;
+
+class DeliverySettingsRequest extends FormRequest
+{
+    /**
+     * Determine if the user is authorized to make this request.
+     */
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    /**
+     * Get the validation rules that apply to the request.
+     *
+     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     */
+    public function rules(): array
+    {
+        return [
+            'yandex_geocoder_api_key' => ['nullable', 'string', 'min:1'],
+            'origin_address' => ['nullable', 'string', 'max:500'],
+            'origin_latitude' => ['nullable', 'numeric', 'between:-90,90'],
+            'origin_longitude' => ['nullable', 'numeric', 'between:-180,180'],
+            'default_city' => ['nullable', 'string', 'max:255'],
+            'free_delivery_threshold' => ['nullable', 'numeric', 'min:0'],
+            'delivery_zones' => ['nullable', 'array'],
+            'delivery_zones.*.max_distance' => ['nullable', 'numeric', 'min:0'],
+            'delivery_zones.*.cost' => ['required_with:delivery_zones', 'numeric', 'min:0'],
+            'is_enabled' => ['nullable', 'boolean'],
+            'min_delivery_order_total_rub' => ['nullable', 'numeric', 'min:0'],
+            'delivery_min_lead_hours' => ['nullable', 'integer', 'min:0', 'max:72'],
+        ];
+    }
+
+    /**
+     * Get custom messages for validator errors.
+     *
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'origin_latitude.between' => 'Широта должна быть между -90 и 90',
+            'origin_longitude.between' => 'Долгота должна быть между -180 и 180',
+            'free_delivery_threshold.numeric' => 'Порог бесплатной доставки должен быть числом',
+            'free_delivery_threshold.min' => 'Порог бесплатной доставки не может быть отрицательным',
+            'delivery_zones.*.max_distance.min' => 'Максимальное расстояние не может быть отрицательным',
+            'delivery_zones.*.cost.required_with' => 'Стоимость доставки обязательна',
+            'delivery_zones.*.cost.min' => 'Стоимость доставки не может быть отрицательной',
+            'min_delivery_order_total_rub.numeric' => 'Минимальный заказ для доставки должен быть числом',
+            'min_delivery_order_total_rub.min' => 'Минимальный заказ для доставки не может быть отрицательным',
+            'delivery_min_lead_hours.integer' => 'Минимальное время подготовки должно быть целым числом',
+            'delivery_min_lead_hours.min' => 'Минимальное время подготовки не может быть отрицательным',
+            'delivery_min_lead_hours.max' => 'Минимальное время подготовки не может превышать 72 часа',
+        ];
+    }
+}

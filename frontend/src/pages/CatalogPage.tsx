@@ -5,10 +5,12 @@ import { MiniAppHeader } from '@/components/MiniAppHeader';
 import { BottomNavigation } from '@/components/BottomNavigation';
 import { CategoryTabs } from '@/components/CategoryTabs';
 import { ProductCard } from '@/components/ProductCard';
+import { DeliveryModeToggle } from '@/components/DeliveryModeToggle';
+import { DeliveryProgressIndicator } from '@/components/DeliveryProgressIndicator';
 import { useCartStore } from '@/store/cartStore';
 import { ShoppingCart } from 'lucide-react';
 import type { Product, Category } from '@/types';
-import { categoryApi, productApi, shopApi } from '@/services/api';
+import { categoryApi, productApi, shopApi, deliverySettingsApi } from '@/services/api';
 import { useQuery } from '@tanstack/react-query';
 
 export function CatalogPage() {
@@ -19,6 +21,54 @@ export function CatalogPage() {
   const totalItems = useCartStore((state) => state.getTotalItems());
   const totalAmount = useCartStore((state) => state.getTotalAmount());
   const setShopIdInCart = useCartStore((state) => state.setShopId);
+  
+  // Состояние выбора типа доставки
+  const [orderMode, setOrderMode] = useState<'pickup' | 'delivery'>(() => {
+    const saved = localStorage.getItem('orderMode');
+    return (saved === 'delivery' || saved === 'pickup') ? saved : 'pickup';
+  });
+
+  // Сохранение orderMode в localStorage
+  useEffect(() => {
+    localStorage.setItem('orderMode', orderMode);
+  }, [orderMode]);
+
+  // Настройки доставки
+  const [minDeliveryTotal, setMinDeliveryTotal] = useState<number>(3000);
+  const [freeDeliveryThreshold, setFreeDeliveryThreshold] = useState<number | undefined>(undefined);
+  
+  // Загрузка настроек доставки
+  useEffect(() => {
+    if (!shopId) return;
+    
+    const loadSettings = async () => {
+      try {
+        const settings = await deliverySettingsApi.getSettings(shopId);
+        
+        if (settings.min_delivery_order_total_rub !== undefined && settings.min_delivery_order_total_rub !== null) {
+          setMinDeliveryTotal(Number(settings.min_delivery_order_total_rub));
+        }
+
+        const thresholdValue = settings.free_delivery_threshold;
+        const currentMinTotal = Number(settings.min_delivery_order_total_rub || minDeliveryTotal || 3000);
+        
+        if (thresholdValue !== undefined && thresholdValue !== null) {
+          const threshold = Number(thresholdValue);
+          if (!isNaN(threshold) && threshold > 0 && threshold > currentMinTotal) {
+            setFreeDeliveryThreshold(threshold);
+          } else {
+            setFreeDeliveryThreshold(undefined);
+          }
+        } else {
+          setFreeDeliveryThreshold(undefined);
+        }
+      } catch (error) {
+        console.error('[CatalogPage] Error loading delivery settings:', error);
+      }
+    };
+
+    loadSettings();
+  }, [shopId]);
 
   // Загружаем категории
   const { data: categories = [], isLoading: categoriesLoading } = useQuery<Category[]>({
@@ -85,11 +135,16 @@ export function CatalogPage() {
     <div className="min-h-screen bg-gradient-to-b from-amber-50 via-orange-50 to-red-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 pb-28">
       <MiniAppHeader title="Каталог" />
 
+      {/* Sticky Menu: Delivery Mode Toggle + Category Tabs */}
       <motion.div
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         className="sticky top-16 z-30 bg-white/95 dark:bg-gray-950/95 backdrop-blur-xl border-b-2 border-amber-200 dark:border-amber-900"
       >
+        {/* Delivery Mode Toggle */}
+        <DeliveryModeToggle value={orderMode} onChange={setOrderMode} />
+
+        {/* Category Tabs */}
         <div className="flex items-center justify-between px-4 py-3">
           <CategoryTabs
             categories={categories}
@@ -179,17 +234,26 @@ export function CatalogPage() {
         </AnimatePresence>
       </div>
 
+      {/* Delivery Progress Indicator - показываем только если выбран режим доставки */}
+      {orderMode === 'delivery' && (
+        <DeliveryProgressIndicator
+          cartTotal={totalAmount}
+          minDeliveryTotal={minDeliveryTotal}
+          freeDeliveryThreshold={freeDeliveryThreshold}
+        />
+      )}
+
       {totalItems > 0 && (
         <motion.div
           initial={{ y: 100, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           className="fixed left-4 right-4 z-40"
-          style={{ bottom: '72px' }}
+          style={{ bottom: orderMode === 'delivery' ? '120px' : '72px' }}
         >
           <motion.button
             whileHover={{ scale: 1.02, boxShadow: '0 20px 40px rgba(245, 158, 11, 0.4)' }}
             whileTap={{ scale: 0.98 }}
-            onClick={() => navigate(`/${shopSlug}/cart`)}
+            onClick={() => navigate(`/${shopSlug}/cart`, { state: { orderMode } })}
             className="flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-600 h-16 text-lg font-black text-white shadow-2xl transition-all"
           >
             <ShoppingCart className="h-6 w-6" />

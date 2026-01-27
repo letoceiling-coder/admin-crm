@@ -103,3 +103,56 @@ export const settingsApi = {
     return fetchApi<{ image: { id: number; url: string; name: string } | null }>('/settings/default-image');
   },
 };
+
+// Delivery Settings API
+export interface DeliverySettings {
+  id?: number;
+  shop_id?: number;
+  origin_address?: string;
+  origin_latitude?: number;
+  origin_longitude?: number;
+  default_city?: string;
+  free_delivery_threshold?: number;
+  delivery_zones?: Array<{ max_distance: number | null; cost: number }>;
+  is_enabled?: boolean;
+  min_delivery_order_total_rub?: number;
+  delivery_min_lead_hours?: number;
+}
+
+export interface DeliveryCostResult {
+  valid: boolean;
+  cost?: number;
+  distance?: number;
+  address?: string;
+  zone?: string;
+  coordinates?: { latitude: number; longitude: number };
+  error?: string;
+  error_code?: string;
+}
+
+export interface AddressSuggestion {
+  value: string;
+  display: string;
+  subtitle?: string;
+}
+
+export const deliverySettingsApi = {
+  getSettings: async (shopId: number): Promise<DeliverySettings> => {
+    const response = await fetchApi<{ data: DeliverySettings }>(`/v1/delivery-settings?shop_id=${shopId}`);
+    return response.data;
+  },
+
+  calculateCost: async (address: string, cartTotal: number, shopId: number): Promise<DeliveryCostResult> => {
+    return fetchApi<DeliveryCostResult>('/v1/delivery/calculate-cost', {
+      method: 'POST',
+      body: JSON.stringify({ address, cart_total: cartTotal, shop_id: shopId }),
+    });
+  },
+
+  getAddressSuggestions: async (query: string, city: string, shopId: number): Promise<{ success: boolean; suggestions: AddressSuggestion[]; error?: string }> => {
+    return fetchApi<{ success: boolean; suggestions: AddressSuggestion[]; error?: string }>('/v1/delivery/address-suggestions', {
+      method: 'POST',
+      body: JSON.stringify({ query, city, shop_id: shopId }),
+    });
+  },
+};
