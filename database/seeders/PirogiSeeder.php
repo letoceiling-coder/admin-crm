@@ -9,6 +9,7 @@ use App\Models\Media;
 use App\Models\Folder;
 use App\Services\ImageService;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -32,7 +33,10 @@ class PirogiSeeder extends Seeder
      */
     public function run(): void
     {
+        $this->command->info('═══════════════════════════════════════');
         $this->command->info('Начинаем импорт данных с pirogi.ru...');
+        $this->command->info('═══════════════════════════════════════');
+        $this->command->info('');
 
         // Определяем user_id (используем первого пользователя или создаем)
         $user = \App\Models\User::first();
@@ -42,6 +46,13 @@ class PirogiSeeder extends Seeder
         }
         $this->userId = $user->id;
         $this->command->info("Используется пользователь ID: {$this->userId}");
+        $this->command->info('');
+
+        // Очищаем существующие данные
+        $this->command->info('🗑️  Очистка существующих данных...');
+        $this->clearExistingData();
+        $this->command->info('✅ Данные очищены');
+        $this->command->info('');
 
         // Загружаем карту сопоставления товаров с изображениями
         $productsImagesPath = storage_path('pirogi_products_images.json');
@@ -94,7 +105,7 @@ class PirogiSeeder extends Seeder
                 'slug' => 'common',
                 'src' => 'folder',
                 'position' => 0,
-                'user_id' => self::USER_ID,
+                'user_id' => $this->userId,
             ]);
         }
 
@@ -116,59 +127,57 @@ class PirogiSeeder extends Seeder
         $categoryMap = [];
         $position = 1;
         
+        $this->command->info('📁 Создание категорий...');
         foreach ($data['categories'] as $catData) {
-            $category = Category::withoutGlobalScopes()->firstOrCreate(
-                ['slug' => Str::slug($catData['name'])],
-                [
-                    'name' => $catData['name'],
-                    'slug' => Str::slug($catData['name']),
-                    'position' => $position++,
-                    'is_active' => true,
-                    'user_id' => $this->userId,
-                ]
-            );
+            $category = Category::withoutGlobalScopes()->create([
+                'name' => $catData['name'],
+                'slug' => Str::slug($catData['name']),
+                'position' => $position++,
+                'is_active' => true,
+                'user_id' => $this->userId,
+            ]);
             $categoryMap[$catData['id']] = $category;
             
             // Создаем папку для категории
-            $categoryFolder = Folder::withoutGlobalScopes()->firstOrCreate(
-                ['name' => $category->name, 'parent_id' => $this->baseFolder->id],
-                [
-                    'slug' => Str::slug($category->name),
-                    'src' => 'folder',
-                    'position' => $position - 1,
-                    'user_id' => $this->userId,
-                ]
-            );
+            $categoryFolder = Folder::withoutGlobalScopes()->create([
+                'name' => $category->name,
+                'slug' => Str::slug($category->name),
+                'src' => 'folder',
+                'parent_id' => $this->baseFolder->id,
+                'position' => $position - 1,
+                'user_id' => $this->userId,
+            ]);
             $this->categoryFolders[$category->id] = $categoryFolder;
             
-            $this->command->info("Создана категория: {$category->name} (папка: {$categoryFolder->name})");
+            $this->command->info("  ✓ Создана категория: {$category->name}");
         }
 
         // Определяем единицы измерения на основе товаров
         $unitsMap = $this->determineUnits($data['products']);
         
         // Создаем единицы измерения
+        $this->command->info('📏 Создание единиц измерения...');
         $unitModels = [];
         $unitPosition = 1;
         foreach ($unitsMap as $unitName => $unitData) {
-            $unit = Unit::withoutGlobalScopes()->firstOrCreate(
-                ['short_name' => $unitData['short']],
-                [
-                    'name' => $unitData['name'],
-                    'short_name' => $unitData['short'],
-                    'position' => $unitPosition++,
-                    'is_active' => true,
-                    'user_id' => $this->userId,
-                ]
-            );
+            $unit = Unit::withoutGlobalScopes()->create([
+                'name' => $unitData['name'],
+                'short_name' => $unitData['short'],
+                'position' => $unitPosition++,
+                'is_active' => true,
+                'user_id' => $this->userId,
+            ]);
             $unitModels[$unitName] = $unit;
-            $this->command->info("Создана единица измерения: {$unit->name} ({$unit->short_name})");
+            $this->command->info("  ✓ Создана единица измерения: {$unit->name} ({$unit->short_name})");
         }
+        $this->command->info('');
 
         // Создаем товары
+        $this->command->info('📦 Создание товаров...');
         $productPosition = 1;
         $downloadedCount = 0;
         $failedCount = 0;
+        $withNutrition = 0;
         
         foreach ($data['products'] as $productData) {
             // Определяем единицу измерения для товара
@@ -176,80 +185,60 @@ class PirogiSeeder extends Seeder
 
             // Собираем питательные вещества и вес (если есть в данных)
             $nutritionalData = $this->extractNutritionalData($productData);
-
-            // Создаем или обновляем товар
-            $product = Product::withoutGlobalScopes()->firstOrCreate(
-                ['slug' => Str::slug($productData['name'])],
-                [
-                    'name' => $productData['name'],
-                    'slug' => Str::slug($productData['name']),
-                    'description' => null,
-                    'sku' => null,
-                    'price' => $productData['price'] ?? 0,
-                    'weight' => $nutritionalData['weight'] ?? null,
-                    'protein' => $nutritionalData['protein'] ?? null,
-                    'fat' => $nutritionalData['fat'] ?? null,
-                    'carbs' => $nutritionalData['carbs'] ?? null,
-                    'calories' => $nutritionalData['calories'] ?? null,
-                    'category_id' => $categoryMap[$productData['categoryId']]->id ?? null,
-                    'unit_id' => $unit ? $unit->id : null,
-                    'stock' => 0,
-                    'position' => $productPosition++,
-                    'is_active' => true,
-                    'user_id' => $this->userId,
-                ]
-            );
-
-            // Обновляем питательные вещества, если товар уже существовал
-            if ($product->wasRecentlyCreated === false) {
-                $updateData = [];
-                
-                // Добавляем поля только если они есть в данных (не null)
-                if (isset($nutritionalData['weight']) && $nutritionalData['weight'] !== null) {
-                    $updateData['weight'] = $nutritionalData['weight'];
-                }
-                if (isset($nutritionalData['protein']) && $nutritionalData['protein'] !== null) {
-                    $updateData['protein'] = $nutritionalData['protein'];
-                }
-                if (isset($nutritionalData['fat']) && $nutritionalData['fat'] !== null) {
-                    $updateData['fat'] = $nutritionalData['fat'];
-                }
-                if (isset($nutritionalData['carbs']) && $nutritionalData['carbs'] !== null) {
-                    $updateData['carbs'] = $nutritionalData['carbs'];
-                }
-                if (isset($nutritionalData['calories']) && $nutritionalData['calories'] !== null) {
-                    $updateData['calories'] = $nutritionalData['calories'];
-                }
-                
-                // Обновляем если есть данные для обновления
-                if (!empty($updateData)) {
-                    $product->update($updateData);
-                    $this->command->info("  → Обновлены питательные вещества: " . implode(', ', array_keys($updateData)));
-                } else {
-                    // Логируем, что данных нет (только для отладки, можно убрать)
-                    // $this->command->warn("  → Данные о питательных веществах отсутствуют в JSON");
-                }
-            }
-
-            // Пытаемся найти и скачать изображение (только если его еще нет)
-            if (!$product->image_id) {
-                $imageDownloaded = $this->downloadProductImage($product, $productData, $categoryMap);
-                if ($imageDownloaded) {
-                    $downloadedCount++;
-                } else {
-                    $failedCount++;
-                }
-            } else {
-                $downloadedCount++;
-            }
             
-            $this->command->info("Товар: {$product->name} " . ($product->wasRecentlyCreated ? 'создан' : 'обновлен') . ($product->image_id ? ' ✓' : ' ⚠'));
+            // Проверяем наличие данных о питательных веществах
+            $hasNutrition = !empty(array_filter($nutritionalData, function($value) {
+                return $value !== null;
+            }));
+            if ($hasNutrition) {
+                $withNutrition++;
+            }
+
+            // Создаем товар
+            $product = Product::withoutGlobalScopes()->create([
+                'name' => $productData['name'],
+                'slug' => Str::slug($productData['name']),
+                'description' => null,
+                'sku' => null,
+                'price' => $productData['price'] ?? 0,
+                'weight' => $nutritionalData['weight'] ?? null,
+                'protein' => $nutritionalData['protein'] ?? null,
+                'fat' => $nutritionalData['fat'] ?? null,
+                'carbs' => $nutritionalData['carbs'] ?? null,
+                'calories' => $nutritionalData['calories'] ?? null,
+                'category_id' => $categoryMap[$productData['categoryId']]->id ?? null,
+                'unit_id' => $unit ? $unit->id : null,
+                'stock' => 0,
+                'position' => $productPosition++,
+                'is_active' => true,
+                'user_id' => $this->userId,
+            ]);
+
+            // Скачиваем изображение
+            $imageDownloaded = $this->downloadProductImage($product, $productData, $categoryMap);
+            if ($imageDownloaded) {
+                $downloadedCount++;
+                $nutritionInfo = $hasNutrition ? ' (с данными о питательных веществах)' : '';
+                $this->command->info("  ✓ Создан товар: {$product->name}{$nutritionInfo}");
+            } else {
+                $failedCount++;
+                $nutritionInfo = $hasNutrition ? ' (с данными о питательных веществах)' : '';
+                $this->command->info("  ⚠ Создан товар: {$product->name}{$nutritionInfo} (изображение не найдено)");
+            }
         }
 
         $this->command->info('');
-        $this->command->info("Импорт завершен успешно!");
-        $this->command->info("Изображений скачано: {$downloadedCount}");
-        $this->command->info("Изображений не найдено: {$failedCount}");
+        $this->command->info('═══════════════════════════════════════');
+        $this->command->info('✅ Импорт завершен успешно!');
+        $this->command->info('═══════════════════════════════════════');
+        $this->command->info("📊 Статистика:");
+        $this->command->info("   Категорий создано: " . count($categoryMap));
+        $this->command->info("   Единиц измерения создано: " . count($unitModels));
+        $this->command->info("   Товаров создано: " . count($data['products']));
+        $this->command->info("   Товаров с данными о питательных веществах: {$withNutrition}");
+        $this->command->info("   Изображений скачано: {$downloadedCount}");
+        $this->command->info("   Изображений не найдено: {$failedCount}");
+        $this->command->info('═══════════════════════════════════════');
     }
 
     /**
@@ -535,5 +524,94 @@ class PirogiSeeder extends Seeder
         }
         
         return implode('/', $path);
+    }
+
+    /**
+     * Очистить существующие данные
+     */
+    private function clearExistingData(): void
+    {
+        try {
+            // Удаляем связи товаров с медиа
+            DB::table('product_media')->delete();
+            $this->command->info('  → Удалены связи товаров с медиа');
+
+            // Удаляем товары
+            DB::table('products')->delete();
+            $this->command->info('  → Удалены товары');
+
+            // Удаляем категории
+            DB::table('categories')->delete();
+            $this->command->info('  → Удалены категории');
+
+            // Удаляем единицы измерения
+            DB::table('units')->delete();
+            $this->command->info('  → Удалены единицы измерения');
+
+            // Удаляем медиа файлы пользователя (только те, что были созданы seeder)
+            // Удаляем медиа из папок категорий
+            $categoryFolders = DB::table('folders')
+                ->where('user_id', $this->userId)
+                ->whereIn('name', [
+                    'Салаты', 'Супы', 'Вторые блюда', 'Гарниры',
+                    'Пироги сытные', 'Пироги сладкие', 'Выпечка', 'Блины'
+                ])
+                ->pluck('id');
+
+            if ($categoryFolders->isNotEmpty()) {
+                $mediaIds = DB::table('media')
+                    ->where('user_id', $this->userId)
+                    ->whereIn('folder_id', $categoryFolders)
+                    ->pluck('id');
+
+                if ($mediaIds->isNotEmpty()) {
+                    // Удаляем файлы из файловой системы
+                    foreach ($mediaIds as $mediaId) {
+                        $media = Media::find($mediaId);
+                        if ($media) {
+                            try {
+                                $metadata = json_decode($media->metadata, true);
+                                if (isset($metadata['path'])) {
+                                    $filePath = public_path($metadata['path']);
+                                    if (file_exists($filePath)) {
+                                        @unlink($filePath);
+                                    }
+                                }
+                                if (isset($metadata['webp_path'])) {
+                                    $webpPath = public_path($metadata['webp_path']);
+                                    if (file_exists($webpPath)) {
+                                        @unlink($webpPath);
+                                    }
+                                }
+                                if (isset($metadata['variants']) && is_array($metadata['variants'])) {
+                                    foreach ($metadata['variants'] as $variant) {
+                                        if (isset($variant['path'])) {
+                                            $variantPath = public_path($variant['path']);
+                                            if (file_exists($variantPath)) {
+                                                @unlink($variantPath);
+                                            }
+                                        }
+                                    }
+                                }
+                            } catch (\Exception $e) {
+                                // Игнорируем ошибки удаления файлов
+                            }
+                        }
+                    }
+
+                    DB::table('media')->whereIn('id', $mediaIds)->delete();
+                    $this->command->info('  → Удалены медиа файлы (' . $mediaIds->count() . ' файлов)');
+                }
+            }
+
+            // Удаляем папки категорий (кроме базовой)
+            if ($categoryFolders->isNotEmpty()) {
+                DB::table('folders')->whereIn('id', $categoryFolders)->delete();
+                $this->command->info('  → Удалены папки категорий');
+            }
+
+        } catch (\Exception $e) {
+            $this->command->warn('  ⚠️  Ошибка при очистке данных: ' . $e->getMessage());
+        }
     }
 }
