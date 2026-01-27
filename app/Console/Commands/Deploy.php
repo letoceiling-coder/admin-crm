@@ -275,26 +275,120 @@ class Deploy extends Command
     {
         $this->info('📦 Шаг 1: Сборка фронтенда...');
 
-        if ($dryRun) {
-            $this->line('  [DRY-RUN] Выполнение: npm run build');
+        $frontendPath = base_path('frontend');
+        
+        if (!File::isDirectory($frontendPath)) {
+            $this->warn('  ⚠️  Директория frontend/ не найдена, пропускаем сборку');
+            $this->newLine();
             return;
         }
 
-        // Увеличиваем таймаут до 5 минут (300 секунд) для сборки фронтенда
-        $process = Process::timeout(300)->run('npm run build');
-
-        if (!$process->successful()) {
-            throw new \Exception("Ошибка сборки фронтенда:\n" . $process->errorOutput());
+        if ($dryRun) {
+            $this->line('  [DRY-RUN] Выполнение: cd frontend && npm install && npm run build');
+            return;
         }
 
+        // Проверяем наличие package.json
+        $packageJsonPath = $frontendPath . '/package.json';
+        if (!File::exists($packageJsonPath)) {
+            $this->warn('  ⚠️  package.json не найден в frontend/, пропускаем сборку');
+            $this->newLine();
+            return;
+        }
+
+        // Шаг 1: Установка зависимостей
+        $this->line('  📥 Установка зависимостей...');
+        $installProcess = Process::path($frontendPath)
+            ->timeout(600) // 10 минут
+            ->run('npm install');
+
+        if (!$installProcess->successful()) {
+            $this->warn('  ⚠️  Предупреждение: npm install завершился с ошибкой');
+            $this->warn('  ' . $installProcess->errorOutput());
+            $this->line('  💡 Продолжаем сборку, возможно зависимости уже установлены...');
+        } else {
+            $this->line('  ✅ Зависимости установлены');
+        }
+
+        // Шаг 2: Сборка проекта
+        $this->line('  🔨 Сборка проекта...');
+        $buildProcess = Process::path($frontendPath)
+            ->timeout(600) // 10 минут
+            ->run('npm run build');
+
+        if (!$buildProcess->successful()) {
+            $errorOutput = $buildProcess->errorOutput();
+            $output = $buildProcess->output();
+            
+            // Если errorOutput пустой, используем output
+            $errorMessage = !empty($errorOutput) ? $errorOutput : $output;
+            
+            // Показываем последние строки вывода для диагностики
+            $lines = explode("\n", $errorMessage);
+            $lastLines = array_slice($lines, -20); // Последние 20 строк
+            
+            $this->error('  ❌ Ошибка сборки фронтенда:');
+            $this->line('  ' . implode("\n  ", $lastLines));
+            
+            throw new \Exception("Ошибка сборки фронтенда. Проверьте вывод выше для деталей.");
+        }
+        
+        $this->line('  ✅ Сборка завершена');
+
         // Проверяем наличие собранных файлов
-        $buildDir = public_path('build');
+        $buildDir = $frontendPath . '/dist';
         if (!File::exists($buildDir)) {
             throw new \Exception("Директория {$buildDir} не найдена после сборки");
         }
 
+        // Шаг 3: Копирование собранных файлов в public/miniapp
+        $this->line('  📋 Копирование файлов в public/miniapp...');
+        $targetDir = public_path('miniapp');
+        
+        // Создаем директорию, если её нет
+        if (!File::isDirectory($targetDir)) {
+            File::makeDirectory($targetDir, 0755, true);
+        }
+
+        // Очищаем старые файлы
+        if (File::isDirectory($targetDir)) {
+            File::deleteDirectory($targetDir);
+            File::makeDirectory($targetDir, 0755, true);
+        }
+
+        // Копируем все файлы из dist в public/miniapp
+        $this->copyDirectory($buildDir, $targetDir);
+
         $this->info('  ✅ Сборка завершена успешно');
+        $this->info("  📁 Файлы скопированы в: {$targetDir}");
         $this->newLine();
+    }
+
+    /**
+     * Рекурсивное копирование директории
+     */
+    protected function copyDirectory(string $source, string $destination): void
+    {
+        if (!File::isDirectory($source)) {
+            return;
+        }
+
+        if (!File::isDirectory($destination)) {
+            File::makeDirectory($destination, 0755, true);
+        }
+
+        $files = File::allFiles($source);
+        foreach ($files as $file) {
+            $relativePath = $file->getRelativePathname();
+            $targetPath = $destination . '/' . $relativePath;
+            $targetDir = dirname($targetPath);
+
+            if (!File::isDirectory($targetDir)) {
+                File::makeDirectory($targetDir, 0755, true);
+            }
+
+            File::copy($file->getPathname(), $targetPath);
+        }
     }
 
     /**
@@ -445,6 +539,16 @@ class Deploy extends Command
                 $this->warn('  ⚠️  Предупреждение: не удалось добавить public/build');
             } else {
                 $this->line('  ✅ Добавлен public/build');
+            }
+        }
+
+        // Добавляем собранные файлы Mini App
+        if (File::exists(public_path('miniapp'))) {
+            $process = Process::run('git add -f public/miniapp');
+            if (!$process->successful()) {
+                $this->warn('  ⚠️  Предупреждение: не удалось добавить public/miniapp');
+            } else {
+                $this->line('  ✅ Добавлен public/miniapp');
             }
         }
 

@@ -94,6 +94,24 @@ class ShopController extends Controller
     }
 
     /**
+     * Получить магазин по slug (публичный доступ для Telegram Mini App)
+     */
+    public function getBySlug(string $slug): JsonResponse
+    {
+        $shop = Shop::where('slug', $slug)
+            ->orWhere('name', $slug)
+            ->first();
+
+        if (!$shop) {
+            return response()->json(['message' => 'Магазин не найден'], 404);
+        }
+
+        $shop->load(['addresses', 'phones', 'customFields']);
+
+        return response()->json($shop);
+    }
+
+    /**
      * Display the specified resource.
      */
     public function show(Request $request, Shop $shop): JsonResponse

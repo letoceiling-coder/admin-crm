@@ -12,6 +12,44 @@ use Illuminate\Support\Str;
 class ProductController extends Controller
 {
     /**
+     * Получить товары по магазину (публичный доступ для Telegram Mini App)
+     */
+    public function getByShop(Request $request, int $shopId): JsonResponse
+    {
+        $query = Product::where('shop_id', $shopId)
+            ->where('is_active', true)
+            ->with(['category', 'unit', 'image', 'images']);
+
+        // Фильтрация по категории
+        if ($request->has('category_id')) {
+            $categoryId = $request->get('category_id');
+            if ($categoryId === 'null' || $categoryId === null) {
+                $query->whereNull('category_id');
+            } else {
+                $query->where('category_id', $categoryId);
+            }
+        }
+
+        // Поиск
+        if ($request->has('search') && $request->get('search')) {
+            $search = trim($request->get('search'));
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%");
+            });
+        }
+
+        // Сортировка
+        $query->orderBy('position', 'asc');
+
+        // Пагинация
+        $perPage = (int) $request->get('per_page', 100);
+        $products = $query->paginate($perPage);
+
+        return response()->json($products);
+    }
+
+    /**
      * Display a listing of the resource.
      */
     public function index(Request $request): JsonResponse
@@ -168,6 +206,16 @@ class ProductController extends Controller
     {
         $user = $request->user();
         
+        // Если пользователь не авторизован, проверяем только активность товара (для публичного доступа)
+        if (!$user) {
+            if (!$product->is_active) {
+                return response()->json(['message' => 'Товар не найден'], 404);
+            }
+            $product->load(['category', 'unit', 'image', 'images']);
+            return response()->json($product);
+        }
+        
+        // Для авторизованных пользователей проверяем доступ
         // Проверяем, что товар принадлежит пользователю
         if ($product->user_id !== $user->id) {
             return response()->json(['message' => 'Доступ запрещен'], 403);

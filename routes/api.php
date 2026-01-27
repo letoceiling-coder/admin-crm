@@ -35,6 +35,12 @@ Route::prefix('auth')->group(function () {
     Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 });
 
+// Публичные роуты для Telegram Mini App (доступны всем)
+Route::get('/shops/slug/{slug}', [ShopController::class, 'getBySlug']);
+Route::get('/shops/{shopId}/categories', [CategoryController::class, 'getByShop']);
+Route::get('/shops/{shopId}/products', [ProductController::class, 'getByShop']);
+Route::get('/products/{product}', [ProductController::class, 'show'])->where('product', '[0-9]+');
+
 // Деплой (защищен токеном)
 Route::post('/deploy', [DeployController::class, 'deploy'])
     ->middleware('deploy.token');

@@ -12,6 +12,20 @@ use Illuminate\Support\Str;
 class CategoryController extends Controller
 {
     /**
+     * Получить категории по магазину (публичный доступ для Telegram Mini App)
+     */
+    public function getByShop(int $shopId): JsonResponse
+    {
+        $categories = Category::where('shop_id', $shopId)
+            ->where('is_active', true)
+            ->with(['parent', 'image'])
+            ->orderBy('position', 'asc')
+            ->get();
+
+        return response()->json($categories);
+    }
+
+    /**
      * Display a listing of the resource.
      */
     public function index(Request $request): JsonResponse
