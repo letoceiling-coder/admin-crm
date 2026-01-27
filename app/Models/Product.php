@@ -30,6 +30,7 @@ class Product extends Model
         'position',
         'is_active',
         'user_id',
+        'shop_id',
     ];
 
     protected $casts = [
@@ -77,5 +78,13 @@ class Product extends Model
             ->withPivot('position')
             ->orderBy('product_media.position')
             ->withTimestamps();
+    }
+
+    /**
+     * Магазин товара
+     */
+    public function shop(): BelongsTo
+    {
+        return $this->belongsTo(Shop::class);
     }
 }

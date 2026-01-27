@@ -5,15 +5,15 @@
         <h1 class="text-2xl font-bold text-gray-900">Заказы</h1>
         <p class="text-gray-600 mt-1">Управление заказами</p>
       </div>
-      <button
-        @click="showCreateModal = true"
+      <router-link
+        to="/admin/orders/create"
         class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
       >
         <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
         </svg>
         Создать заказ
-      </button>
+      </router-link>
     </div>
 
     <!-- Фильтры и поиск -->
@@ -112,12 +112,12 @@
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
       </svg>
       <p class="text-gray-600 mb-4">Заказы не найдены</p>
-      <button
-        @click="showCreateModal = true"
+      <router-link
+        to="/admin/orders/create"
         class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
       >
         Создать первый заказ
-      </button>
+      </router-link>
     </div>
 
     <div v-else class="bg-white rounded-lg border border-gray-200 overflow-hidden">
@@ -170,15 +170,15 @@
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                 <div class="flex items-center justify-end gap-2">
-                  <button
-                    @click="editOrder(order)"
+                  <router-link
+                    :to="`/admin/orders/${order.id}/edit`"
                     class="text-blue-600 hover:text-blue-900"
                     title="Редактировать"
                   >
                     <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                     </svg>
-                  </button>
+                  </router-link>
                   <button
                     @click="confirmDelete(order)"
                     class="text-red-600 hover:text-red-900"
@@ -222,110 +222,6 @@
       </div>
     </div>
 
-    <!-- Модальное окно создания/редактирования -->
-    <div
-      v-if="showCreateModal || editingOrder"
-      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-      @click.self="closeModal"
-    >
-      <div class="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">
-          {{ editingOrder ? 'Редактировать заказ' : 'Создать заказ' }}
-        </h3>
-        <form @submit.prevent="saveOrder">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Имя клиента *</label>
-              <input
-                v-model="form.customer_name"
-                type="text"
-                required
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-              <input
-                v-model="form.customer_email"
-                type="email"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Телефон</label>
-              <input
-                v-model="form.customer_phone"
-                type="text"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Сумма *</label>
-              <input
-                v-model="form.total_amount"
-                type="number"
-                step="0.01"
-                min="0"
-                required
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Статус</label>
-              <select
-                v-model="form.status"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="pending">Ожидает</option>
-                <option value="processing">В обработке</option>
-                <option value="completed">Завершен</option>
-                <option value="cancelled">Отменен</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Дата заказа</label>
-              <input
-                v-model="form.order_date"
-                type="date"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-            <div class="md:col-span-2">
-              <label class="block text-sm font-medium text-gray-700 mb-1">Адрес</label>
-              <textarea
-                v-model="form.customer_address"
-                rows="2"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              ></textarea>
-            </div>
-            <div class="md:col-span-2">
-              <label class="block text-sm font-medium text-gray-700 mb-1">Примечания</label>
-              <textarea
-                v-model="form.notes"
-                rows="3"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              ></textarea>
-            </div>
-          </div>
-          <div class="flex justify-end gap-3 mt-6">
-            <button
-              type="button"
-              @click="closeModal"
-              class="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-            >
-              Отмена
-            </button>
-            <button
-              type="submit"
-              class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              {{ editingOrder ? 'Сохранить' : 'Создать' }}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-
     <!-- Модальное окно подтверждения удаления -->
     <div
       v-if="orderToDelete"
@@ -366,8 +262,6 @@ const error = ref(null);
 const orderToDelete = ref(null);
 const pagination = ref(null);
 const searchTimeout = ref(null);
-const showCreateModal = ref(false);
-const editingOrder = ref(null);
 
 const filters = ref({
   search: '',
@@ -375,17 +269,6 @@ const filters = ref({
   sort_by: 'created_at',
   sort_order: 'desc',
   per_page: 20,
-});
-
-const form = ref({
-  customer_name: '',
-  customer_email: '',
-  customer_phone: '',
-  customer_address: '',
-  notes: '',
-  total_amount: 0,
-  status: 'pending',
-  order_date: '',
 });
 
 const fetchOrders = async (page = 1) => {
@@ -475,50 +358,6 @@ const formatCurrency = (amount) => {
 const formatDate = (date) => {
   if (!date) return '-';
   return new Date(date).toLocaleDateString('ru-RU');
-};
-
-const editOrder = (order) => {
-  editingOrder.value = order;
-  form.value = {
-    customer_name: order.customer_name || '',
-    customer_email: order.customer_email || '',
-    customer_phone: order.customer_phone || '',
-    customer_address: order.customer_address || '',
-    notes: order.notes || '',
-    total_amount: order.total_amount || 0,
-    status: order.status || 'pending',
-    order_date: order.order_date ? order.order_date.split('T')[0] : '',
-  };
-};
-
-const closeModal = () => {
-  showCreateModal.value = false;
-  editingOrder.value = null;
-  form.value = {
-    customer_name: '',
-    customer_email: '',
-    customer_phone: '',
-    customer_address: '',
-    notes: '',
-    total_amount: 0,
-    status: 'pending',
-    order_date: '',
-  };
-};
-
-const saveOrder = async () => {
-  try {
-    if (editingOrder.value) {
-      await apiClient.put(`/admin/orders/${editingOrder.value.id}`, form.value);
-    } else {
-      await apiClient.post('/admin/orders', form.value);
-    }
-    closeModal();
-    await fetchOrders(pagination.value?.current_page || 1);
-  } catch (err) {
-    error.value = err.response?.data?.message || 'Не удалось сохранить заказ';
-    console.error('Error saving order:', err);
-  }
 };
 
 const confirmDelete = (order) => {

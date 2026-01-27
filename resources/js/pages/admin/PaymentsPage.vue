@@ -5,15 +5,15 @@
         <h1 class="text-2xl font-bold text-gray-900">Платежи</h1>
         <p class="text-gray-600 mt-1">Управление платежами</p>
       </div>
-      <button
-        @click="showCreateModal = true"
+      <router-link
+        to="/admin/payments/create"
         class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
       >
         <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
         </svg>
         Создать платеж
-      </button>
+      </router-link>
     </div>
 
     <!-- Фильтры и поиск -->
@@ -117,12 +117,12 @@
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
       </svg>
       <p class="text-gray-600 mb-4">Платежи не найдены</p>
-      <button
-        @click="showCreateModal = true"
+      <router-link
+        to="/admin/payments/create"
         class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
       >
         Создать первый платеж
-      </button>
+      </router-link>
     </div>
 
     <div v-else class="bg-white rounded-lg border border-gray-200 overflow-hidden">
@@ -185,15 +185,15 @@
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                 <div class="flex items-center justify-end gap-2">
-                  <button
-                    @click="editPayment(payment)"
+                  <router-link
+                    :to="`/admin/payments/${payment.id}/edit`"
                     class="text-blue-600 hover:text-blue-900"
                     title="Редактировать"
                   >
                     <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                     </svg>
-                  </button>
+                  </router-link>
                   <button
                     @click="confirmDelete(payment)"
                     class="text-red-600 hover:text-red-900"
@@ -237,116 +237,6 @@
       </div>
     </div>
 
-    <!-- Модальное окно создания/редактирования -->
-    <div
-      v-if="showCreateModal || editingPayment"
-      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-      @click.self="closeModal"
-    >
-      <div class="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">
-          {{ editingPayment ? 'Редактировать платеж' : 'Создать платеж' }}
-        </h3>
-        <form @submit.prevent="savePayment">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Имя плательщика *</label>
-              <input
-                v-model="form.payer_name"
-                type="text"
-                required
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-              <input
-                v-model="form.payer_email"
-                type="email"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Телефон</label>
-              <input
-                v-model="form.payer_phone"
-                type="text"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Сумма *</label>
-              <input
-                v-model="form.amount"
-                type="number"
-                step="0.01"
-                min="0"
-                required
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Способ оплаты</label>
-              <select
-                v-model="form.payment_method"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="cash">Наличные</option>
-                <option value="card">Карта</option>
-                <option value="bank_transfer">Банковский перевод</option>
-                <option value="online">Онлайн</option>
-                <option value="other">Другое</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Статус</label>
-              <select
-                v-model="form.status"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="pending">Ожидает</option>
-                <option value="processing">В обработке</option>
-                <option value="completed">Завершен</option>
-                <option value="failed">Неудачный</option>
-                <option value="refunded">Возвращен</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Дата платежа</label>
-              <input
-                v-model="form.payment_date"
-                type="date"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-            <div class="md:col-span-2">
-              <label class="block text-sm font-medium text-gray-700 mb-1">Примечания</label>
-              <textarea
-                v-model="form.notes"
-                rows="3"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              ></textarea>
-            </div>
-          </div>
-          <div class="flex justify-end gap-3 mt-6">
-            <button
-              type="button"
-              @click="closeModal"
-              class="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-            >
-              Отмена
-            </button>
-            <button
-              type="submit"
-              class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              {{ editingPayment ? 'Сохранить' : 'Создать' }}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-
     <!-- Модальное окно подтверждения удаления -->
     <div
       v-if="paymentToDelete"
@@ -387,9 +277,6 @@ const error = ref(null);
 const paymentToDelete = ref(null);
 const pagination = ref(null);
 const searchTimeout = ref(null);
-const showCreateModal = ref(false);
-const editingPayment = ref(null);
-
 const filters = ref({
   search: '',
   status: '',
@@ -397,18 +284,6 @@ const filters = ref({
   sort_by: 'created_at',
   sort_order: 'desc',
   per_page: 20,
-});
-
-const form = ref({
-  order_id: null,
-  payer_name: '',
-  payer_email: '',
-  payer_phone: '',
-  amount: 0,
-  payment_method: 'cash',
-  status: 'pending',
-  notes: '',
-  payment_date: '',
 });
 
 const fetchPayments = async (page = 1) => {
@@ -515,52 +390,6 @@ const formatCurrency = (amount) => {
 const formatDate = (date) => {
   if (!date) return '-';
   return new Date(date).toLocaleDateString('ru-RU');
-};
-
-const editPayment = (payment) => {
-  editingPayment.value = payment;
-  form.value = {
-    order_id: payment.order_id || null,
-    payer_name: payment.payer_name || '',
-    payer_email: payment.payer_email || '',
-    payer_phone: payment.payer_phone || '',
-    amount: payment.amount || 0,
-    payment_method: payment.payment_method || 'cash',
-    status: payment.status || 'pending',
-    notes: payment.notes || '',
-    payment_date: payment.payment_date ? payment.payment_date.split('T')[0] : '',
-  };
-};
-
-const closeModal = () => {
-  showCreateModal.value = false;
-  editingPayment.value = null;
-  form.value = {
-    order_id: null,
-    payer_name: '',
-    payer_email: '',
-    payer_phone: '',
-    amount: 0,
-    payment_method: 'cash',
-    status: 'pending',
-    notes: '',
-    payment_date: '',
-  };
-};
-
-const savePayment = async () => {
-  try {
-    if (editingPayment.value) {
-      await apiClient.put(`/admin/payments/${editingPayment.value.id}`, form.value);
-    } else {
-      await apiClient.post('/admin/payments', form.value);
-    }
-    closeModal();
-    await fetchPayments(pagination.value?.current_page || 1);
-  } catch (err) {
-    error.value = err.response?.data?.message || 'Не удалось сохранить платеж';
-    console.error('Error saving payment:', err);
-  }
 };
 
 const confirmDelete = (payment) => {

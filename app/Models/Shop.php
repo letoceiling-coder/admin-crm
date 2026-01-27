@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Str;
 
 class Shop extends Model
 {
@@ -14,11 +15,48 @@ class Shop extends Model
 
     protected $fillable = [
         'name',
+        'slug',
         'admin_id',
         'inn',
         'ogrn',
         'telegram_bot_token',
     ];
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($shop) {
+            if (empty($shop->slug)) {
+                $shop->slug = static::generateUniqueSlug($shop->name);
+            }
+        });
+
+        static::updating(function ($shop) {
+            if ($shop->isDirty('name') && empty($shop->slug)) {
+                $shop->slug = static::generateUniqueSlug($shop->name, $shop->id);
+            }
+        });
+    }
+
+    /**
+     * Генерация уникального slug на основе названия
+     */
+    protected static function generateUniqueSlug(string $name, ?int $excludeId = null): string
+    {
+        $baseSlug = Str::slug($name);
+        $slug = $baseSlug;
+        $counter = 1;
+
+        while (static::where('slug', $slug)
+            ->when($excludeId, fn($query) => $query->where('id', '!=', $excludeId))
+            ->exists()) {
+            $slug = $baseSlug . '-' . $counter;
+            $counter++;
+        }
+
+        return $slug;
+    }
 
     /**
      * Администратор, создавший магазин
@@ -70,5 +108,45 @@ class Shop extends Model
     public function customFields(): HasMany
     {
         return $this->hasMany(ShopCustomField::class);
+    }
+
+    /**
+     * Категории магазина
+     */
+    public function categories(): HasMany
+    {
+        return $this->hasMany(Category::class);
+    }
+
+    /**
+     * Товары магазина
+     */
+    public function products(): HasMany
+    {
+        return $this->hasMany(Product::class);
+    }
+
+    /**
+     * Заказы магазина
+     */
+    public function orders(): HasMany
+    {
+        return $this->hasMany(Order::class);
+    }
+
+    /**
+     * Доставки магазина
+     */
+    public function deliveries(): HasMany
+    {
+        return $this->hasMany(Delivery::class);
+    }
+
+    /**
+     * Платежи магазина
+     */
+    public function payments(): HasMany
+    {
+        return $this->hasMany(Payment::class);
     }
 }

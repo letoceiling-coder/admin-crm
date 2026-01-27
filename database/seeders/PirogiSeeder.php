@@ -22,6 +22,7 @@ class PirogiSeeder extends Seeder
     private $productImageMap = [];
     private $categoryFolders = [];
     private $userId;
+    private $shopId;
 
     public function __construct()
     {
@@ -46,6 +47,16 @@ class PirogiSeeder extends Seeder
         }
         $this->userId = $user->id;
         $this->command->info("Используется пользователь ID: {$this->userId}");
+        
+        // Определяем shop_id (используем магазин с id = 1)
+        $shop = \App\Models\Shop::find(1);
+        if (!$shop) {
+            $this->command->warn('Магазин с ID = 1 не найден. Категории и товары будут созданы без привязки к магазину.');
+            $this->shopId = null;
+        } else {
+            $this->shopId = $shop->id;
+            $this->command->info("Используется магазин ID: {$this->shopId}");
+        }
         $this->command->info('');
 
         // Очищаем существующие данные
@@ -135,6 +146,7 @@ class PirogiSeeder extends Seeder
                 'position' => $position++,
                 'is_active' => true,
                 'user_id' => $this->userId,
+                'shop_id' => $this->shopId,
             ]);
             $categoryMap[$catData['id']] = $category;
             
@@ -212,6 +224,7 @@ class PirogiSeeder extends Seeder
                 'position' => $productPosition++,
                 'is_active' => true,
                 'user_id' => $this->userId,
+                'shop_id' => $this->shopId,
             ]);
 
             // Скачиваем изображение

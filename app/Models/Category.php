@@ -21,6 +21,7 @@ class Category extends Model
         'position',
         'is_active',
         'user_id',
+        'shop_id',
     ];
 
     protected $casts = [
@@ -58,5 +59,13 @@ class Category extends Model
     public function products(): HasMany
     {
         return $this->hasMany(Product::class)->orderBy('position');
+    }
+
+    /**
+     * Магазин категории
+     */
+    public function shop(): BelongsTo
+    {
+        return $this->belongsTo(Shop::class);
     }
 }
