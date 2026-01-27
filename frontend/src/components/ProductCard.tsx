@@ -124,11 +124,11 @@ export function ProductCard({ product, onClick, variant = 'grid' }: ProductCardP
         />
       </motion.button>
 
-      <div className="relative w-full bg-gradient-to-br from-amber-100 via-orange-100 to-red-100 dark:from-amber-900 dark:via-orange-900 dark:to-red-900 overflow-hidden flex-shrink-0 flex items-center justify-center" style={{ aspectRatio: '1 / 1' }}>
+      <div className="relative w-full bg-gradient-to-br from-amber-100 via-orange-100 to-red-100 dark:from-amber-900 dark:via-orange-900 dark:to-red-900 overflow-hidden flex-shrink-0 flex items-center justify-center">
         <motion.img
           src={imageUrl}
           alt={product.name}
-          className="w-full h-full object-contain"
+          className="w-full h-auto object-contain"
           loading="lazy"
           whileHover={{ scale: 1.05 }}
           transition={{ duration: 0.3 }}
