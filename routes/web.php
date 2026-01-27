@@ -15,14 +15,54 @@ use App\Models\Shop;
 */
 
 // Роуты для статических файлов Mini App (должны быть ДО общего роута)
+// Обработка запросов к /miniapp/assets/* и других файлов из miniapp
 Route::get('/miniapp/{any}', function ($any) {
-    $path = public_path("miniapp/{$any}");
-    if (file_exists($path) && is_file($path)) {
-        $mimeType = mime_content_type($path);
-        return response()->file($path, ['Content-Type' => $mimeType]);
+    // Защита от path traversal
+    $any = str_replace('..', '', $any);
+    $any = ltrim($any, '/');
+    
+    $filePath = public_path("miniapp/{$any}");
+    $basePath = public_path('miniapp');
+    
+    // Проверяем, что файл находится внутри базовой директории
+    $realFilePath = realpath($filePath);
+    $realBasePath = realpath($basePath);
+    
+    if (!$realFilePath || !$realBasePath || !str_starts_with($realFilePath, $realBasePath)) {
+        abort(404, "File not found: {$any}");
     }
-    abort(404);
-})->where('any', '.*');
+    
+    if (!file_exists($realFilePath) || !is_file($realFilePath)) {
+        abort(404, "File not found: {$any}");
+    }
+    
+    // Определяем MIME тип по расширению
+    $extension = strtolower(pathinfo($realFilePath, PATHINFO_EXTENSION));
+    $mimeTypes = [
+        'js' => 'application/javascript; charset=utf-8',
+        'mjs' => 'application/javascript; charset=utf-8',
+        'css' => 'text/css; charset=utf-8',
+        'png' => 'image/png',
+        'jpg' => 'image/jpeg',
+        'jpeg' => 'image/jpeg',
+        'gif' => 'image/gif',
+        'svg' => 'image/svg+xml',
+        'webp' => 'image/webp',
+        'woff' => 'font/woff',
+        'woff2' => 'font/woff2',
+        'ttf' => 'font/ttf',
+        'eot' => 'application/vnd.ms-fontobject',
+        'ico' => 'image/x-icon',
+        'html' => 'text/html; charset=utf-8',
+    ];
+    
+    $mimeType = $mimeTypes[$extension] ?? mime_content_type($realFilePath);
+    
+    return response()->file($realFilePath, [
+        'Content-Type' => $mimeType,
+        'Cache-Control' => 'public, max-age=31536000',
+    ]);
+})->where('any', '.+');
 
 // Роут для Telegram Mini App по slug магазина
 Route::get('/{shopSlug}', function ($shopSlug) {
