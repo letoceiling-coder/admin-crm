@@ -60,8 +60,6 @@
         v-for="folder in filteredFolders"
         :key="folder.id"
         class="group relative"
-        @mouseenter="hoveredFolderId = folder.id"
-        @mouseleave="hoveredFolderId = null"
       >
         <div
           class="cursor-pointer"
@@ -86,10 +84,8 @@
         <button
           v-if="!folder.protected && !selectionMode"
           @click.stop="handleDeleteFolder(folder)"
-          :class="[
-            'absolute top-2 right-2 transition-opacity w-6 h-6 flex items-center justify-center bg-red-500 text-white rounded text-xs hover:bg-red-600 z-30',
-            hoveredFolderId === folder.id ? 'opacity-100' : 'opacity-20'
-          ]"
+          class="absolute top-2 right-2 opacity-100 w-6 h-6 flex items-center justify-center bg-red-500 text-white rounded text-xs hover:bg-red-600 z-30 shadow-lg"
+          style="min-width: 24px; min-height: 24px;"
           title="Удалить папку"
         >
           ✕
@@ -343,7 +339,8 @@
                 <button
                   v-if="!folder.protected && !selectionMode"
                   @click.stop="handleDeleteFolder(folder)"
-                  class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity w-6 h-6 flex items-center justify-center bg-destructive text-white rounded text-xs hover:bg-destructive/90 z-10"
+                  class="absolute top-2 right-2 opacity-100 w-6 h-6 flex items-center justify-center bg-red-500 text-white rounded text-xs hover:bg-red-600 z-30 shadow-lg"
+                  style="min-width: 24px; min-height: 24px;"
                   title="Удалить папку"
                 >
                   ✕
