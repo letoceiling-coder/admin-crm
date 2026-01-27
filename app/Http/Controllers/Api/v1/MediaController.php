@@ -465,16 +465,10 @@ class MediaController extends Controller
         $media = Media::findOrFail($id);
 
         // Проверяем, что пользователь может изменять только свои файлы
-        // Системные файлы (user_id = NULL) нельзя изменять
         if (auth()->check()) {
-            if ($media->user_id === null) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Нельзя изменить системный файл'
-                ], 403);
-            }
-            
-            if ($media->user_id !== auth()->id()) {
+            // Пользователь может изменять только свои файлы
+            // Если user_id = null, это старый файл без user_id - разрешаем изменение
+            if ($media->user_id !== null && $media->user_id !== auth()->id()) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Нельзя изменить файл другого пользователя'
@@ -724,16 +718,10 @@ class MediaController extends Controller
             $media = Media::findOrFail($id);
             
             // Проверяем, что пользователь может удалять только свои файлы
-            // Системные файлы (user_id = NULL) нельзя удалять
             if (auth()->check()) {
-                if ($media->user_id === null) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Нельзя удалить системный файл'
-                    ], 403);
-                }
-                
-                if ($media->user_id !== auth()->id()) {
+                // Пользователь может удалять только свои файлы
+                // Если user_id = null, это старый файл без user_id - разрешаем удаление
+                if ($media->user_id !== null && $media->user_id !== auth()->id()) {
                     return response()->json([
                         'success' => false,
                         'message' => 'Нельзя удалить файл другого пользователя'
