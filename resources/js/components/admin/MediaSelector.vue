@@ -1,6 +1,6 @@
 <template>
     <div v-if="open" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-        <div class="bg-card rounded-lg border border-border w-full max-w-6xl max-h-[90vh] flex flex-col overflow-hidden">
+        <div class="bg-white dark:bg-gray-900 rounded-lg border border-border w-full max-w-6xl max-h-[90vh] flex flex-col overflow-hidden">
             <!-- Header -->
             <div class="flex items-center justify-between p-6 border-b border-border flex-shrink-0">
                 <div>
