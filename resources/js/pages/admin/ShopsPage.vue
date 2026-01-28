@@ -62,6 +62,9 @@
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Телеграм бот
               </th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Шаблон
+              </th>
               <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Действия
               </th>
@@ -93,6 +96,20 @@
                   class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800"
                 >
                   Не подключен
+                </span>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <span
+                  class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+                  :class="{
+                    'bg-amber-100 text-amber-800': shop.template === 'amber',
+                    'bg-blue-100 text-blue-800': shop.template === 'blue',
+                    'bg-green-100 text-green-800': shop.template === 'green',
+                    'bg-purple-100 text-purple-800': shop.template === 'purple',
+                    'bg-gray-100 text-gray-800': shop.template === 'monochrome' || !shop.template
+                  }"
+                >
+                  {{ getTemplateName(shop.template) }}
                 </span>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -194,6 +211,28 @@ const deleteShop = async () => {
     error.value = err.response?.data?.message || 'Не удалось удалить магазин';
     console.error('Error deleting shop:', err);
   }
+};
+
+const getTemplateName = (template) => {
+  const templates = {
+    'amber': 'Янтарный',
+    'blue': 'Синий',
+    'green': 'Зеленый',
+    'purple': 'Фиолетовый',
+    'monochrome': 'Черно-белый'
+  };
+  return templates[template] || 'Янтарный';
+};
+
+const getTemplateName = (template) => {
+  const templates = {
+    'amber': 'Янтарный',
+    'blue': 'Синий',
+    'green': 'Зеленый',
+    'purple': 'Фиолетовый',
+    'monochrome': 'Черно-белый'
+  };
+  return templates[template] || 'Янтарный';
 };
 
 onMounted(() => {
