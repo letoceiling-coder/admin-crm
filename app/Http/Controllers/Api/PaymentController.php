@@ -3,9 +3,14 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Order;
 use App\Models\Payment;
+use App\Models\PaymentMethodSetting;
+use App\Services\Payment\YooKassaService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class PaymentController extends Controller
@@ -16,11 +21,26 @@ class PaymentController extends Controller
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
-        $query = Payment::where('user_id', $user->id)->with(['user', 'order']);
+        $query = Payment::query()->with(['user', 'order']);
 
         // Фильтрация по магазину
         if ($request->has('shop_id') && $request->get('shop_id')) {
-            $query->where('shop_id', $request->get('shop_id'));
+            $shopId = (int) $request->get('shop_id');
+            if (!$user->hasAccessToShop($shopId)) {
+                return response()->json(['message' => 'Доступ к магазину запрещен'], 403);
+            }
+            $query->where('shop_id', $shopId);
+        } else {
+            // Без shop_id: ограничиваем платежи только теми, к каким есть доступ через магазины
+            if ($user->isDeveloper()) {
+                // developer видит все
+            } else {
+                // admin -> только свои магазины, manager -> назначенные
+                $accessibleShopIds = $user->isAdmin()
+                    ? $user->ownedShops()->pluck('id')
+                    : ($user->isManager() ? $user->shops()->pluck('shops.id') : collect());
+                $query->whereIn('shop_id', $accessibleShopIds);
+            }
         }
 
         // Поиск
@@ -144,14 +164,7 @@ class PaymentController extends Controller
     public function show(Request $request, Payment $payment): JsonResponse
     {
         $user = $request->user();
-        
-        // Проверяем, что платеж принадлежит пользователю
-        if ($payment->user_id !== $user->id) {
-            return response()->json(['message' => 'Доступ запрещен'], 403);
-        }
-
-        // Проверяем доступ к магазину платежа
-        if ($payment->shop_id && !$user->hasAccessToShop($payment->shop_id)) {
+        if ($payment->shop_id && !$user->hasAccessToShop((int) $payment->shop_id)) {
             return response()->json(['message' => 'Доступ к магазину запрещен'], 403);
         }
 
@@ -165,14 +178,7 @@ class PaymentController extends Controller
     public function update(Request $request, Payment $payment): JsonResponse
     {
         $user = $request->user();
-        
-        // Проверяем, что платеж принадлежит пользователю
-        if ($payment->user_id !== $user->id) {
-            return response()->json(['message' => 'Доступ запрещен'], 403);
-        }
-
-        // Проверяем доступ к магазину платежа
-        if ($payment->shop_id && !$user->hasAccessToShop($payment->shop_id)) {
+        if ($payment->shop_id && !$user->hasAccessToShop((int) $payment->shop_id)) {
             return response()->json(['message' => 'Доступ к магазину запрещен'], 403);
         }
 
@@ -222,19 +228,225 @@ class PaymentController extends Controller
     public function destroy(Request $request, Payment $payment): JsonResponse
     {
         $user = $request->user();
-        
-        // Проверяем, что платеж принадлежит пользователю
-        if ($payment->user_id !== $user->id) {
-            return response()->json(['message' => 'Доступ запрещен'], 403);
-        }
-
-        // Проверяем доступ к магазину платежа
-        if ($payment->shop_id && !$user->hasAccessToShop($payment->shop_id)) {
+        if ($payment->shop_id && !$user->hasAccessToShop((int) $payment->shop_id)) {
             return response()->json(['message' => 'Доступ к магазину запрещен'], 403);
         }
 
         $payment->delete();
 
         return response()->json(['message' => 'Платеж успешно удален']);
+    }
+
+    private function getYooKassaSettingForShop(int $shopId): ?PaymentMethodSetting
+    {
+        return PaymentMethodSetting::whereNull('user_id')
+            ->where('shop_id', $shopId)
+            ->where('payment_method_code', PaymentMethodSetting::CODE_YOOKASSA)
+            ->first();
+    }
+
+    /**
+     * Ручной capture YooKassa (админка), привязано к shop_id платежа
+     * POST /admin/payments/{payment}/yookassa/capture
+     */
+    public function yooKassaCapture(Request $request, Payment $payment): JsonResponse
+    {
+        $user = $request->user();
+        if (!$payment->shop_id || !$user->hasAccessToShop($payment->shop_id)) {
+            return response()->json(['message' => 'Доступ к магазину запрещен'], 403);
+        }
+        if (($payment->payment_provider ?? null) !== 'yookassa') {
+            return response()->json(['message' => 'Платеж не относится к ЮКасса'], 422);
+        }
+        if (!$payment->transaction_id) {
+            return response()->json(['message' => 'Отсутствует transaction_id (payment_id ЮКасса)'], 422);
+        }
+
+        $pm = $this->getYooKassaSettingForShop((int) $payment->shop_id);
+        if (!$pm || !$pm->is_enabled) {
+            return response()->json(['message' => 'ЮКасса не подключена для этого магазина'], 422);
+        }
+
+        try {
+            $service = new YooKassaService($pm);
+            $captured = $service->capturePayment($payment->transaction_id);
+
+            DB::transaction(function () use ($payment, $captured) {
+                $payload = $payment->provider_payload ?? [];
+                $payload['capture'][] = [
+                    'at' => now()->toISOString(),
+                    'response' => $captured,
+                ];
+                $payment->provider_payload = $payload;
+
+                $status = $captured['status'] ?? null;
+                if ($status === 'succeeded') {
+                    $payment->status = 'completed';
+                    $payment->paid_at = $payment->paid_at ?? now();
+                } elseif ($status === 'canceled') {
+                    $payment->status = 'failed';
+                } else {
+                    $payment->status = 'processing';
+                }
+                $payment->save();
+
+                if ($payment->order_id && $payment->status === 'completed') {
+                    $order = Order::find($payment->order_id);
+                    if ($order && $order->status === 'pending') {
+                        $order->status = 'processing';
+                        $order->save();
+                    }
+                }
+            });
+
+            $payment->load(['user', 'order']);
+            return response()->json(['data' => $payment]);
+        } catch (\Throwable $e) {
+            Log::error('yooKassaCapture error', ['payment_id' => $payment->id, 'error' => $e->getMessage()]);
+            return response()->json(['message' => 'Ошибка capture: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Возврат YooKassa (полный или частичный) (админка), привязано к shop_id платежа
+     * POST /admin/payments/{payment}/yookassa/refund
+     * Body: amount? (если не указан — полный возврат)
+     */
+    public function yooKassaRefund(Request $request, Payment $payment): JsonResponse
+    {
+        $user = $request->user();
+        if (!$payment->shop_id || !$user->hasAccessToShop($payment->shop_id)) {
+            return response()->json(['message' => 'Доступ к магазину запрещен'], 403);
+        }
+        if (($payment->payment_provider ?? null) !== 'yookassa') {
+            return response()->json(['message' => 'Платеж не относится к ЮКасса'], 422);
+        }
+        if (!$payment->transaction_id) {
+            return response()->json(['message' => 'Отсутствует transaction_id (payment_id ЮКасса)'], 422);
+        }
+
+        $validated = $request->validate([
+            'amount' => 'nullable|numeric|min:0.01',
+            'description' => 'nullable|string|max:255',
+        ]);
+
+        $amount = isset($validated['amount']) ? (float) $validated['amount'] : (float) $payment->amount;
+        $paymentAmount = (float) $payment->amount;
+        if ($amount > $paymentAmount) {
+            return response()->json(['message' => 'Сумма возврата не может превышать сумму платежа'], 422);
+        }
+
+        $pm = $this->getYooKassaSettingForShop((int) $payment->shop_id);
+        if (!$pm || !$pm->is_enabled) {
+            return response()->json(['message' => 'ЮКасса не подключена для этого магазина'], 422);
+        }
+
+        try {
+            $service = new YooKassaService($pm);
+            $refund = $service->createRefund($payment->transaction_id, [
+                'amount' => $amount,
+                'currency' => 'RUB',
+                'description' => $validated['description'] ?? ('Возврат по платежу ' . $payment->payment_number),
+            ]);
+
+            DB::transaction(function () use ($payment, $refund, $amount, $paymentAmount) {
+                $payload = $payment->provider_payload ?? [];
+                $payload['refunds'][] = [
+                    'at' => now()->toISOString(),
+                    'amount' => $amount,
+                    'response' => $refund,
+                ];
+                $payment->provider_payload = $payload;
+
+                if (($refund['status'] ?? null) === 'succeeded') {
+                    // Полный возврат -> статус refunded, частичный -> оставляем completed, но фиксируем в notes
+                    if (abs($amount - $paymentAmount) < 0.01) {
+                        $payment->status = 'refunded';
+                    } else {
+                        $payment->status = $payment->status === 'failed' ? 'failed' : 'completed';
+                        $payment->notes = trim((string) ($payment->notes ?? '') . "\nЧастичный возврат: " . number_format($amount, 2, '.', ''));
+                    }
+                }
+                $payment->save();
+            });
+
+            $payment->load(['user', 'order']);
+            return response()->json(['data' => $payment]);
+        } catch (\Throwable $e) {
+            Log::error('yooKassaRefund error', ['payment_id' => $payment->id, 'error' => $e->getMessage()]);
+            return response()->json(['message' => 'Ошибка возврата: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Принудительно обновить статус платежа из ЮКасса (GET payment по transaction_id).
+     * POST /admin/payments/{payment}/yookassa/sync
+     */
+    public function yooKassaSync(Request $request, Payment $payment): JsonResponse
+    {
+        $user = $request->user();
+        if (!$payment->shop_id || !$user->hasAccessToShop($payment->shop_id)) {
+            return response()->json(['message' => 'Доступ к магазину запрещен'], 403);
+        }
+        if (($payment->payment_provider ?? null) !== 'yookassa') {
+            return response()->json(['message' => 'Платеж не относится к ЮКасса'], 422);
+        }
+        if (!$payment->transaction_id) {
+            return response()->json(['message' => 'Отсутствует transaction_id (payment_id ЮКасса)'], 422);
+        }
+
+        $pm = $this->getYooKassaSettingForShop((int) $payment->shop_id);
+        if (!$pm || !$pm->is_enabled) {
+            return response()->json(['message' => 'ЮКасса не подключена для этого магазина'], 422);
+        }
+
+        try {
+            $service = new YooKassaService($pm);
+            $ykPayment = $service->getPayment($payment->transaction_id);
+
+            $status = $ykPayment['status'] ?? null;
+            $crmStatus = $payment->status;
+            if ($status === 'succeeded') {
+                $crmStatus = 'completed';
+            } elseif ($status === 'canceled') {
+                $crmStatus = 'failed';
+            } elseif ($status === 'waiting_for_capture') {
+                $crmStatus = 'processing';
+            } elseif ($status === 'pending') {
+                $crmStatus = 'pending';
+            }
+            // refunded в CRM не меняем по GET payment — только по webhook refund.succeeded
+            if ($payment->status === 'refunded') {
+                $crmStatus = 'refunded';
+            }
+
+            DB::transaction(function () use ($payment, $ykPayment, $crmStatus) {
+                $payload = $payment->provider_payload ?? [];
+                $payload['last_sync'] = [
+                    'at' => now()->toISOString(),
+                    'response' => $ykPayment,
+                ];
+                $payment->provider_payload = $payload;
+                $payment->status = $crmStatus;
+                if ($crmStatus === 'completed' && !$payment->paid_at) {
+                    $payment->paid_at = now();
+                }
+                $payment->save();
+
+                if ($payment->order_id && $crmStatus === 'completed') {
+                    $order = Order::find($payment->order_id);
+                    if ($order && $order->status === 'pending') {
+                        $order->status = 'processing';
+                        $order->save();
+                    }
+                }
+            });
+
+            $payment->load(['user', 'order']);
+            return response()->json(['data' => $payment]);
+        } catch (\Throwable $e) {
+            Log::error('yooKassaSync error', ['payment_id' => $payment->id, 'error' => $e->getMessage()]);
+            return response()->json(['message' => 'Ошибка синхронизации: ' . $e->getMessage()], 500);
+        }
     }
 }

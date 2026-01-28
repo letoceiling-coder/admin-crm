@@ -310,7 +310,7 @@ export function CheckoutPage() {
         price: item.product.price,
       }));
 
-      await ordersApi.create(shopIdState, {
+      const createdOrder = await ordersApi.create(shopIdState, {
         init_data: initData,
         customer_name: name.trim(),
         customer_address: deliveryType === 'delivery' ? address.trim() || undefined : undefined,
@@ -318,6 +318,15 @@ export function CheckoutPage() {
         total_amount: Math.round(finalAmount * 100) / 100,
         items: orderItems,
       });
+
+      // Онлайн-оплата ЮКасса: создаём платёж и редиректим на страницу оплаты
+      if (selectedPaymentMethod === 'yookassa') {
+        const payment = await ordersApi.createYooKassaPayment(shopIdState, createdOrder.id, initData);
+        if (payment?.confirmation_url) {
+          window.location.href = payment.confirmation_url;
+          return;
+        }
+      }
 
       setIsSuccess(true);
       clearCart();

@@ -102,21 +102,25 @@ class DeliverySetting extends Model
     public static function getSettings(?int $userId = null, ?int $shopId = null): self
     {
         $query = static::query();
-        
-        if ($userId !== null) {
-            $query->where('user_id', $userId);
-        } else {
-            $query->whereNull('user_id');
-        }
-        
+
         if ($shopId !== null) {
             $query->where('shop_id', $shopId);
         } else {
             $query->whereNull('shop_id');
         }
-        
+
+        // Админка: настройки привязаны к пользователю и магазину (user_id, shop_id)
+        // Публичный API (frontend): нужны настройки магазина — берём любую запись с этим shop_id,
+        // чтобы использовалась та же запись, что редактируется в админке (с API ключом и т.д.)
+        if ($userId !== null) {
+            $query->where('user_id', $userId);
+        } else {
+            // Не фильтруем по user_id — первая запись по shop_id (чаще всего это запись из админки)
+            $query->orderByRaw('user_id IS NOT NULL DESC')->orderBy('id');
+        }
+
         $settings = $query->first();
-        
+
         if (!$settings) {
             // Создаем настройки по умолчанию
             $settings = static::create([
@@ -137,7 +141,7 @@ class DeliverySetting extends Model
                 'delivery_min_lead_hours' => 3,
             ]);
         }
-        
+
         return $settings;
     }
 

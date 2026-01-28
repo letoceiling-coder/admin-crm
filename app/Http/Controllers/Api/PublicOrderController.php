@@ -5,12 +5,16 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\Payment;
 use App\Models\Shop;
 use App\Models\ShopBotUser;
+use App\Models\PaymentMethodSetting;
+use App\Services\Payment\YooKassaService;
 use App\Services\TelegramInitDataService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 /**
  * Публичное API заказов для Mini App: по initData (telegram_id) или по телефону (fallback).
@@ -245,6 +249,122 @@ class PublicOrderController extends Controller
                 'trace' => $e->getTraceAsString(),
             ]);
             return response()->json(['message' => 'Ошибка создания заказа'], 500);
+        }
+    }
+
+    /**
+     * Создание платежа ЮКасса для заказа Mini App.
+     * POST /shops/{shopId}/orders/{orderId}/pay/yookassa
+     * Headers/Body: init_data
+     */
+    public function createYooKassaPayment(Request $request, int $shopId, int $orderId): JsonResponse
+    {
+        $botUserOrError = $this->resolveShopBotUserFromInitData($request, $shopId);
+        if ($botUserOrError instanceof JsonResponse) {
+            return $botUserOrError;
+        }
+        if (!$botUserOrError instanceof ShopBotUser) {
+            return response()->json(['message' => 'Укажите init_data'], 422);
+        }
+
+        $shop = Shop::find($shopId);
+        if (!$shop) {
+            return response()->json(['message' => 'Магазин не найден'], 404);
+        }
+
+        $order = Order::where('shop_id', $shopId)->where('id', $orderId)->first();
+        if (!$order) {
+            return response()->json(['message' => 'Заказ не найден'], 404);
+        }
+        if ((int) $order->shop_bot_user_id !== (int) $botUserOrError->id) {
+            return response()->json(['message' => 'Доступ запрещён'], 403);
+        }
+
+        $pm = PaymentMethodSetting::whereNull('user_id')
+            ->where('shop_id', $shopId)
+            ->where('payment_method_code', PaymentMethodSetting::CODE_YOOKASSA)
+            ->first();
+
+        if (!$pm || !$pm->is_enabled) {
+            return response()->json(['message' => 'ЮКасса не подключена для этого магазина'], 422);
+        }
+
+        $cfg = $pm->getYooKassaConfig();
+        $autoCapture = (bool) ($cfg['auto_capture'] ?? true);
+
+        try {
+            $payment = DB::transaction(function () use ($shop, $order, $shopId) {
+                $paymentNumber = 'PAY-' . strtoupper(Str::random(8));
+                while (Payment::where('payment_number', $paymentNumber)->exists()) {
+                    $paymentNumber = 'PAY-' . strtoupper(Str::random(8));
+                }
+
+                return Payment::create([
+                    'user_id' => $shop->admin_id,
+                    'shop_id' => $shopId,
+                    'order_id' => $order->id,
+                    'payment_number' => $paymentNumber,
+                    'payer_name' => $order->customer_name,
+                    'payer_email' => $order->customer_email ?? null,
+                    'payer_phone' => $order->customer_phone ?? null,
+                    'amount' => $order->total_amount,
+                    'payment_method' => 'online',
+                    'payment_provider' => 'yookassa',
+                    'status' => 'pending',
+                    'payment_date' => now(),
+                ]);
+            });
+
+            $service = new YooKassaService($pm);
+            $returnUrl = rtrim(config('app.url'), '/') . '/' . $shop->slug . '/orders/' . $order->id;
+
+            $yooPayment = $service->createPayment([
+                'amount' => (float) $order->total_amount,
+                'currency' => 'RUB',
+                'confirmation_type' => 'redirect',
+                'return_url' => $returnUrl,
+                'description' => "Оплата заказа {$order->order_number}",
+                'capture' => $autoCapture,
+                'metadata' => [
+                    'shop_id' => (int) $shopId,
+                    'order_id' => (int) $order->id,
+                    'payment_id' => (int) $payment->id,
+                ],
+            ]);
+
+            $payment->transaction_id = $yooPayment['id'] ?? null;
+            $payment->provider_payload = [
+                'created' => $yooPayment,
+            ];
+            $status = $yooPayment['status'] ?? null;
+            if ($status === 'succeeded') {
+                $payment->status = 'completed';
+                $payment->paid_at = now();
+                $order->status = 'processing';
+                $order->save();
+            } else {
+                $payment->status = 'processing';
+            }
+            $payment->save();
+
+            $confirmationUrl = $yooPayment['confirmation']['confirmation_url'] ?? null;
+            if (!$confirmationUrl) {
+                return response()->json(['message' => 'Не удалось получить ссылку на оплату'], 500);
+            }
+
+            return response()->json([
+                'payment_id' => $payment->id,
+                'provider_payment_id' => $payment->transaction_id,
+                'confirmation_url' => $confirmationUrl,
+                'status' => $payment->status,
+            ], 201);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('PublicOrderController::createYooKassaPayment exception', [
+                'shop_id' => $shopId,
+                'order_id' => $orderId,
+                'message' => $e->getMessage(),
+            ]);
+            return response()->json(['message' => 'Ошибка создания платежа'], 500);
         }
     }
 }

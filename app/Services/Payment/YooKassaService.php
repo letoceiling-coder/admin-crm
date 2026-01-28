@@ -206,4 +206,17 @@ class YooKassaService
             return ['success' => false, 'message' => 'Ошибка подключения: ' . $e->getMessage()];
         }
     }
+
+    /**
+     * Проверка подписи webhook (если YooKassa присылает заголовок X-YooMoney-Signature).
+     */
+    public function verifyWebhookSignature(string $rawBody, string $signature): bool
+    {
+        $secretKey = $this->getSecretKey();
+        if (!$secretKey) {
+            return false;
+        }
+        $expectedSignature = base64_encode(hash_hmac('sha256', $rawBody, $secretKey, true));
+        return hash_equals($expectedSignature, base64_decode($signature));
+    }
 }

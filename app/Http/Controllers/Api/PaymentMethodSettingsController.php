@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\PaymentMethodSettingsRequest;
+use App\Models\Order;
+use App\Models\Payment;
 use App\Models\PaymentMethodSetting;
 use App\Services\Payment\YooKassaService;
 use Illuminate\Http\JsonResponse;
@@ -272,10 +274,16 @@ class PaymentMethodSettingsController extends Controller
      */
     public function webhookYooKassa(Request $request, $shopId): JsonResponse
     {
+        $event = $request->input('event');
+        $object = $request->input('object', []);
+        $providerPaymentId = $object['id'] ?? null;
+        $metadata = $object['metadata'] ?? [];
+
         Log::info('YooKassa webhook received', [
-            'shop_id' => $shopId,
-            'event' => $request->input('event'),
-            'payment_id' => $request->input('object.id'),
+            'shop_id' => (int) $shopId,
+            'event' => $event,
+            'provider_payment_id' => $providerPaymentId,
+            'metadata' => $metadata,
         ]);
 
         $setting = PaymentMethodSetting::whereNull('user_id')
@@ -287,7 +295,79 @@ class PaymentMethodSettingsController extends Controller
             return response()->json(['message' => 'Integration disabled'], 403);
         }
 
-        // TODO: разбор event (payment.succeeded, payment.canceled и т.д.) и обновление платежей/заказов
-        return response()->json(['message' => 'OK'], 200);
+        try {
+            $service = new YooKassaService($setting);
+
+            // Проверка подписи (если прислали)
+            $signature = $request->header('X-YooMoney-Signature');
+            if ($signature) {
+                $rawBody = $request->getContent();
+                if (!$service->verifyWebhookSignature($rawBody, $signature)) {
+                    Log::warning('YooKassa webhook invalid signature', ['shop_id' => (int) $shopId]);
+                    return response()->json(['message' => 'Invalid signature'], 403);
+                }
+            }
+
+            $payment = null;
+            if ($providerPaymentId) {
+                $payment = Payment::where('shop_id', $shopId)
+                    ->where('payment_provider', 'yookassa')
+                    ->where('transaction_id', $providerPaymentId)
+                    ->first();
+            }
+            if (!$payment && isset($metadata['payment_id'])) {
+                $payment = Payment::where('shop_id', $shopId)->where('id', (int) $metadata['payment_id'])->first();
+            }
+
+            if (!$payment) {
+                Log::warning('YooKassa webhook: payment not found', ['shop_id' => (int) $shopId, 'provider_payment_id' => $providerPaymentId]);
+                return response()->json(['message' => 'OK'], 200);
+            }
+
+            $payment->provider_payload = array_merge($payment->provider_payload ?? [], [
+                'last_webhook' => [
+                    'event' => $event,
+                    'object' => $object,
+                    'received_at' => now()->toISOString(),
+                ],
+            ]);
+
+            $order = $payment->order_id ? Order::where('shop_id', $shopId)->where('id', $payment->order_id)->first() : null;
+            $autoCapture = (bool) (($setting->getYooKassaConfig()['auto_capture'] ?? true));
+
+            if ($event === 'payment.waiting_for_capture') {
+                $payment->status = 'processing';
+                if ($autoCapture && $providerPaymentId) {
+                    $captured = $service->capturePayment($providerPaymentId);
+                    $payment->provider_payload = array_merge($payment->provider_payload ?? [], ['capture' => $captured]);
+                    if (($captured['status'] ?? null) === 'succeeded') {
+                        $payment->status = 'completed';
+                        $payment->paid_at = now();
+                        if ($order && $order->status === 'pending') {
+                            $order->status = 'processing';
+                            $order->save();
+                        }
+                    }
+                }
+            } elseif ($event === 'payment.succeeded') {
+                $payment->status = 'completed';
+                $payment->paid_at = now();
+                if ($order && $order->status === 'pending') {
+                    $order->status = 'processing';
+                    $order->save();
+                }
+            } elseif ($event === 'payment.canceled') {
+                $payment->status = 'failed';
+            } elseif ($event === 'refund.succeeded') {
+                $payment->status = 'refunded';
+            }
+
+            $payment->save();
+
+            return response()->json(['message' => 'OK'], 200);
+        } catch (\Throwable $e) {
+            Log::error('YooKassa webhook exception', ['shop_id' => (int) $shopId, 'error' => $e->getMessage()]);
+            return response()->json(['message' => 'OK'], 200);
+        }
     }
 }

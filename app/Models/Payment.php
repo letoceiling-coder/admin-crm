@@ -21,6 +21,9 @@ class Payment extends Model
         'payer_phone',
         'amount',
         'payment_method',
+        'payment_provider',
+        'transaction_id',
+        'provider_payload',
         'status',
         'notes',
         'payment_date',
@@ -29,6 +32,7 @@ class Payment extends Model
 
     protected $casts = [
         'amount' => 'decimal:2',
+        'provider_payload' => 'array',
         'payment_date' => 'datetime',
         'paid_at' => 'datetime',
     ];

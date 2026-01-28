@@ -215,6 +215,12 @@ const routes = [
         meta: { title: 'Создание платежа' },
       },
       {
+        path: 'payments/:id',
+        name: 'admin.payments.show',
+        component: () => import('../pages/admin/PaymentDetailPage.vue'),
+        meta: { title: 'Платёж' },
+      },
+      {
         path: 'payments/:id/edit',
         name: 'admin.payments.edit',
         component: () => import('../pages/admin/PaymentFormPage.vue'),

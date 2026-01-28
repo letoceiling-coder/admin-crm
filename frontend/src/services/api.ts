@@ -169,6 +169,20 @@ export const ordersApi = {
       body: JSON.stringify(payload),
     });
   },
+
+  createYooKassaPayment: async (
+    shopId: number,
+    orderId: number,
+    initData: string
+  ): Promise<{ confirmation_url: string; payment_id: number; provider_payment_id?: string; status?: string }> => {
+    return fetchApi<{ confirmation_url: string; payment_id: number; provider_payment_id?: string; status?: string }>(
+      `/shops/${shopId}/orders/${orderId}/pay/yookassa`,
+      {
+        method: 'POST',
+        headers: { 'X-Telegram-Init-Data': initData },
+      }
+    );
+  },
 };
 
 // Settings API

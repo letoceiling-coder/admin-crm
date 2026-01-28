@@ -52,6 +52,7 @@ Route::get('/products/{product}', [ProductController::class, 'show'])->where('pr
 Route::get('/shops/{shopId}/orders', [PublicOrderController::class, 'index']);
 Route::post('/shops/{shopId}/orders', [PublicOrderController::class, 'store']);
 Route::get('/shops/{shopId}/orders/{orderId}', [PublicOrderController::class, 'show'])->where('orderId', '[0-9]+');
+Route::post('/shops/{shopId}/orders/{orderId}/pay/yookassa', [PublicOrderController::class, 'createYooKassaPayment'])->where('orderId', '[0-9]+');
 Route::get('/settings/default-image', [SettingsController::class, 'getDefaultImage']);
 
 // Webhook ЮКасса (публичный, привязан к shop_id — ЮКасса шлёт POST сюда)
@@ -110,6 +111,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('orders', OrderController::class);
         Route::apiResource('deliveries', DeliveryController::class);
         Route::apiResource('payments', PaymentController::class);
+        // YooKassa actions (привязка к shop_id внутри Payment)
+        Route::post('payments/{payment}/yookassa/capture', [PaymentController::class, 'yooKassaCapture']);
+        Route::post('payments/{payment}/yookassa/refund', [PaymentController::class, 'yooKassaRefund']);
+        Route::post('payments/{payment}/yookassa/sync', [PaymentController::class, 'yooKassaSync']);
 
         // Управление настройками
         Route::get('settings', [SettingsController::class, 'index']);

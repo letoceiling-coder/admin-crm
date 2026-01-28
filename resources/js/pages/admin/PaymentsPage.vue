@@ -143,6 +143,9 @@
                 Способ оплаты
               </th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                ЮКасса
+              </th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Статус
               </th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -170,6 +173,23 @@
                 <span class="text-sm text-gray-900">{{ getPaymentMethodLabel(payment.payment_method) }}</span>
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
+                <div v-if="payment.payment_provider === 'yookassa'" class="space-y-1">
+                  <div class="text-xs text-gray-500">
+                    ID: <span class="font-mono text-gray-800">{{ payment.transaction_id || '-' }}</span>
+                  </div>
+                  <a
+                    v-if="getYooKassaLink(payment)"
+                    :href="getYooKassaLink(payment)"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="text-xs text-blue-600 hover:text-blue-800 underline"
+                  >
+                    Ссылка на оплату
+                  </a>
+                </div>
+                <span v-else class="text-sm text-gray-400">—</span>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
                 <span
                   :class="getStatusClass(payment.status)"
                   class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
@@ -185,6 +205,38 @@
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                 <div class="flex items-center justify-end gap-2">
+                  <router-link
+                    :to="`/admin/payments/${payment.id}`"
+                    class="text-gray-600 hover:text-gray-900"
+                    title="Диагностика (детали)"
+                  >
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                  </router-link>
+                  <button
+                    v-if="payment.payment_provider === 'yookassa' && payment.transaction_id && (payment.status === 'pending' || payment.status === 'processing')"
+                    @click="confirmCapture(payment)"
+                    class="text-amber-600 hover:text-amber-800"
+                    title="Ручной capture"
+                  >
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6l4 2"></path>
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                  </button>
+                  <button
+                    v-if="payment.payment_provider === 'yookassa' && payment.transaction_id && payment.status === 'completed'"
+                    @click="promptRefund(payment)"
+                    class="text-purple-600 hover:text-purple-800"
+                    title="Возврат"
+                  >
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2"></path>
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10l4-4m-4 4l4 4"></path>
+                    </svg>
+                  </button>
                   <router-link
                     :to="`/admin/payments/${payment.id}/edit`"
                     class="text-blue-600 hover:text-blue-900"
@@ -271,6 +323,7 @@
 import { ref, onMounted, watch } from 'vue';
 import apiClient from '@/api/axios';
 import { useShopStore } from '@/stores/shop';
+import Swal from 'sweetalert2';
 
 const shopStore = useShopStore();
 const payments = ref([]);
@@ -412,6 +465,61 @@ const deletePayment = async () => {
   } catch (err) {
     error.value = err.response?.data?.message || 'Не удалось удалить платеж';
     console.error('Error deleting payment:', err);
+  }
+};
+
+const getYooKassaLink = (payment) => {
+  return payment?.provider_payload?.created?.confirmation?.confirmation_url || null;
+};
+
+const updatePaymentInList = (updated) => {
+  const idx = payments.value.findIndex((p) => p.id === updated.id);
+  if (idx !== -1) {
+    payments.value[idx] = updated;
+  }
+};
+
+const confirmCapture = async (payment) => {
+  const result = await Swal.fire({
+    icon: 'question',
+    title: 'Подтвердить платеж (capture)?',
+    text: `Платеж ${payment.payment_number}. YooKassa ID: ${payment.transaction_id}`,
+    showCancelButton: true,
+    confirmButtonText: 'Capture',
+    cancelButtonText: 'Отмена',
+  });
+  if (!result.isConfirmed) return;
+  try {
+    const resp = await apiClient.post(`/admin/payments/${payment.id}/yookassa/capture`);
+    const updated = resp.data?.data || resp.data;
+    updatePaymentInList(updated);
+    await Swal.fire({ icon: 'success', title: 'Готово', text: 'Capture выполнен' });
+  } catch (err) {
+    await Swal.fire({ icon: 'error', title: 'Ошибка', text: err.response?.data?.message || 'Не удалось выполнить capture' });
+  }
+};
+
+const promptRefund = async (payment) => {
+  const result = await Swal.fire({
+    title: 'Возврат',
+    input: 'text',
+    inputLabel: 'Сумма возврата (оставьте пустым для полного)',
+    inputPlaceholder: String(payment.amount),
+    showCancelButton: true,
+    confirmButtonText: 'Сделать возврат',
+    cancelButtonText: 'Отмена',
+  });
+  if (!result.isConfirmed) return;
+  const amount = (result.value || '').trim();
+  try {
+    const payload = {};
+    if (amount) payload.amount = Number(amount);
+    const resp = await apiClient.post(`/admin/payments/${payment.id}/yookassa/refund`, payload);
+    const updated = resp.data?.data || resp.data;
+    updatePaymentInList(updated);
+    await Swal.fire({ icon: 'success', title: 'Готово', text: 'Возврат отправлен' });
+  } catch (err) {
+    await Swal.fire({ icon: 'error', title: 'Ошибка', text: err.response?.data?.message || 'Не удалось выполнить возврат' });
   }
 };
 
