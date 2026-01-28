@@ -121,13 +121,17 @@ export function CheckoutPage() {
         
         setPaymentMethods(availableMethods);
         
-        // Устанавливаем способ оплаты по умолчанию
-        const defaultMethod = availableMethods.find(m => m.is_default) || availableMethods[0];
-        if (defaultMethod) {
+        // Устанавливаем способ оплаты: по умолчанию или первый доступный; если нет методов — сбрасываем выбор
+        if (availableMethods.length === 0) {
+          setSelectedPaymentMethod(null);
+        } else {
+          const defaultMethod = availableMethods.find(m => m.is_default) || availableMethods[0];
           setSelectedPaymentMethod(defaultMethod.payment_method_code);
         }
       } catch (error) {
         console.error('Error loading payment methods:', error);
+        setPaymentMethods([]);
+        setSelectedPaymentMethod(null);
       }
     };
 

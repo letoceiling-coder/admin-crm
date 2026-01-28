@@ -34,7 +34,8 @@ class PaymentMethodSettingsController extends Controller
         }
         
         try {
-            $settings = PaymentMethodSetting::getSettings($user->id, $shopId);
+            // Загружаем настройки уровня магазина (user_id = null), чтобы админка и фронт видели одни и те же данные
+            $settings = PaymentMethodSetting::getSettings(null, $shopId);
             
             return response()->json([
                 'data' => $settings->map(function ($setting) {
@@ -97,14 +98,14 @@ class PaymentMethodSettingsController extends Controller
             
             $validated = $request->validated();
             
-            // Получаем или создаем настройки
-            $setting = PaymentMethodSetting::where('user_id', $user->id)
+            // Получаем или создаем настройки уровня магазина (user_id = null), чтобы фронт чекаута видел те же данные
+            $setting = PaymentMethodSetting::whereNull('user_id')
                 ->where('shop_id', $shopId)
                 ->where('payment_method_code', $code)
                 ->first();
             
             if (!$setting) {
-                // Создаем настройки по умолчанию
+                // Создаем настройки по умолчанию для магазина
                 $defaults = [
                     PaymentMethodSetting::CODE_CASH => [
                         'name' => 'Наличные',
@@ -132,15 +133,15 @@ class PaymentMethodSettingsController extends Controller
                 ];
                 
                 $setting = PaymentMethodSetting::create(array_merge([
-                    'user_id' => $user->id,
+                    'user_id' => null,
                     'shop_id' => $shopId,
                     'payment_method_code' => $code,
                 ], $defaults[$code] ?? []));
             }
             
-            // Если устанавливаем как дефолтный, снимаем флаг с остальных
+            // Если устанавливаем как дефолтный, снимаем флаг с остальных (в рамках этого магазина)
             if (isset($validated['is_default']) && $validated['is_default']) {
-                PaymentMethodSetting::where('user_id', $user->id)
+                PaymentMethodSetting::whereNull('user_id')
                     ->where('shop_id', $shopId)
                     ->where('id', '!=', $setting->id)
                     ->where('is_default', true)
