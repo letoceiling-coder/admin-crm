@@ -8,7 +8,7 @@ import { useCartStore } from '@/store/cartStore';
 import { useTheme } from '@/contexts/ThemeContext';
 import { CheckCircle } from 'lucide-react';
 import { shopApi, deliverySettingsApi, paymentMethodsApi, type PaymentMethodSetting } from '@/services/api';
-import { cn } from '@/lib/utils';
+import { cn, formatPhoneMask, validatePhone } from '@/lib/utils';
 
 type DeliveryType = 'pickup' | 'delivery';
 
@@ -46,6 +46,8 @@ export function CheckoutPage() {
   const [paymentDiscount, setPaymentDiscount] = useState<{ discount: number; final_amount: number; applied: boolean } | null>(null);
   const [paymentNotification, setPaymentNotification] = useState<string | null>(null);
   const [minDeliveryOrderTotal, setMinDeliveryOrderTotal] = useState<number | null>(null);
+  const [deliveryError, setDeliveryError] = useState<string | null>(null);
+  const [phoneError, setPhoneError] = useState<string | null>(null);
 
   const totalAmount = getTotalAmount();
   
@@ -207,17 +209,14 @@ export function CheckoutPage() {
 
   // Расчет стоимости доставки при изменении адреса или типа доставки
   useEffect(() => {
+    setDeliveryError(null);
     if (deliveryType === 'delivery' && shopIdState) {
       const timeoutId = setTimeout(async () => {
         setIsCalculatingDelivery(true);
         try {
-          // Для фиксированной доставки адрес не обязателен, но можно использовать минимальную длину
-          // Для зон доставки адрес обязателен
           const settings = await deliverySettingsApi.getSettings(shopIdState);
           
           if (settings.delivery_type === 'fixed') {
-            // Для фиксированной доставки просто используем фиксированную стоимость
-            // Проверяем порог бесплатной доставки
             if (settings.free_delivery_threshold && totalAmount >= settings.free_delivery_threshold) {
               setDeliveryCost(0);
             } else {
@@ -225,13 +224,15 @@ export function CheckoutPage() {
             }
             setIsCalculatingDelivery(false);
           } else {
-            // Для зон доставки требуется адрес
-            if (address.trim().length > 5) {
-              const result = await deliverySettingsApi.calculateCost(address, totalAmount, shopIdState);
+            const trimmedAddress = address.trim();
+            if (trimmedAddress.length > 5) {
+              const result = await deliverySettingsApi.calculateCost(trimmedAddress, totalAmount, shopIdState);
               if (result.valid && result.cost !== undefined) {
                 setDeliveryCost(result.cost);
+                setDeliveryError(null);
               } else {
                 setDeliveryCost(null);
+                setDeliveryError(result.error ?? 'Адрес не найден');
               }
             } else {
               setDeliveryCost(null);
@@ -239,11 +240,12 @@ export function CheckoutPage() {
             setIsCalculatingDelivery(false);
           }
         } catch (error) {
-          console.error('Error calculating delivery cost:', error);
+          const message = error instanceof Error ? error.message : 'Не удалось рассчитать стоимость доставки';
           setDeliveryCost(null);
+          setDeliveryError(message);
           setIsCalculatingDelivery(false);
         }
-      }, 1000); // Debounce 1 секунда
+      }, 1000);
 
       return () => clearTimeout(timeoutId);
     } else {
@@ -288,11 +290,16 @@ export function CheckoutPage() {
       return;
     }
     
-    // Проверка обязательных полей
     if (!selectedPaymentMethod) {
       alert('Выберите способ оплаты');
       return;
     }
+
+    if (!validatePhone(phone)) {
+      setPhoneError('Введите корректный номер телефона (10 цифр)');
+      return;
+    }
+    setPhoneError(null);
     
     setIsSubmitting(true);
 
@@ -400,10 +407,26 @@ export function CheckoutPage() {
                   type="tel"
                   required
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border-2 border-amber-200 dark:border-amber-900 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  onChange={(e) => {
+                    const formatted = formatPhoneMask(e.target.value);
+                    setPhone(formatted);
+                    setPhoneError(null);
+                  }}
+                  onBlur={() => {
+                    if (phone && !validatePhone(phone)) setPhoneError('Введите 10 цифр номера');
+                    else setPhoneError(null);
+                  }}
+                  className={cn(
+                    'w-full px-4 py-3 rounded-xl border-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500',
+                    phoneError ? 'border-red-500 dark:border-red-600' : 'border-amber-200 dark:border-amber-900'
+                  )}
                   placeholder="+7 (999) 123-45-67"
+                  inputMode="numeric"
+                  autoComplete="tel"
                 />
+                {phoneError && (
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{phoneError}</p>
+                )}
               </div>
 
               {deliveryType === 'delivery' && (
@@ -434,6 +457,9 @@ export function CheckoutPage() {
                     <p className="text-xs text-gray-500 mt-1">
                       Фиксированная стоимость доставки
                     </p>
+                  )}
+                  {deliveryError && (
+                    <p className="text-xs text-red-600 dark:text-red-400 mt-1">{deliveryError}</p>
                   )}
                 </div>
               )}

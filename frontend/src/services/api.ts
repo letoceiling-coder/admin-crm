@@ -49,7 +49,7 @@ async function fetchApi<T>(
   const isJson = contentType && contentType.includes('application/json');
 
   if (!response.ok) {
-    let error;
+    let error: { message?: string; error?: string };
     if (isJson) {
       try {
         error = await response.json();
@@ -57,13 +57,11 @@ async function fetchApi<T>(
         error = { message: `HTTP error! status: ${response.status}` };
       }
     } else {
-      // Если ответ не JSON (например, HTML страница ошибки), читаем как текст
       const text = await response.text();
-      error = { 
-        message: `HTTP error! status: ${response.status}. Server returned: ${text.substring(0, 100)}` 
-      };
+      error = { message: `HTTP error! status: ${response.status}. Server returned: ${text.substring(0, 100)}` };
     }
-    throw new Error(error.message || `HTTP error! status: ${response.status}`);
+    const message = error?.error ?? error?.message ?? `HTTP error! status: ${response.status}`;
+    throw new Error(message);
   }
 
   if (!isJson) {

@@ -5,6 +5,42 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+/** Из строки оставить только цифры */
+function digitsOnly(value: string): string {
+  return value.replace(/\D/g, '')
+}
+
+/**
+ * Форматирование телефона в маску +7 (XXX) XXX-XX-XX (только цифры, макс. 10 после +7)
+ * Ввод: 8 или 7 в начале — код страны, далее до 10 цифр номера.
+ */
+export function formatPhoneMask(value: string): string {
+  let digits = digitsOnly(value)
+  if (digits.startsWith('8')) digits = '7' + digits.slice(1)
+  if (digits.startsWith('7')) digits = digits.slice(0, 11)
+  else digits = digits.slice(0, 10)
+  const rest = digits.startsWith('7') ? digits.slice(1) : digits // 0–10 цифр номера
+  if (rest.length === 0) return ''
+  if (rest.length <= 3) return '+7 (' + rest
+  if (rest.length <= 6) return '+7 (' + rest.slice(0, 3) + ') ' + rest.slice(3)
+  if (rest.length <= 8) return '+7 (' + rest.slice(0, 3) + ') ' + rest.slice(3, 6) + '-' + rest.slice(6)
+  return '+7 (' + rest.slice(0, 3) + ') ' + rest.slice(3, 6) + '-' + rest.slice(6, 8) + '-' + rest.slice(8, 10)
+}
+
+/**
+ * Проверка телефона: 10 цифр (без +7) или 11 с ведущей 7
+ */
+export function validatePhone(phone: string): boolean {
+  const digits = digitsOnly(phone)
+  const normalized = digits.startsWith('7') ? digits.slice(1) : digits
+  return normalized.length === 10
+}
+
+/** Из отформатированного телефона получить только цифры (для отправки на бэк) */
+export function phoneToDigits(phone: string): string {
+  return digitsOnly(phone).replace(/^8/, '7').slice(0, 11)
+}
+
 // Кэш для фото по умолчанию
 let defaultImageUrl: string | null = null;
 let defaultImagePromise: Promise<string | null> | null = null;
