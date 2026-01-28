@@ -7,7 +7,7 @@ import { DeliveryModeToggle } from '@/components/DeliveryModeToggle';
 import { useCartStore } from '@/store/cartStore';
 import { useTheme } from '@/contexts/ThemeContext';
 import { CheckCircle } from 'lucide-react';
-import { shopApi, deliverySettingsApi, paymentMethodsApi, ordersApi, getTelegramInitData, type PaymentMethodSetting } from '@/services/api';
+import { shopApi, deliverySettingsApi, paymentMethodsApi, ordersApi, getTelegramInitData, type PaymentMethodSetting, type AddressSuggestion } from '@/services/api';
 import { cn } from '@/lib/utils';
 
 type DeliveryType = 'pickup' | 'delivery';
@@ -48,6 +48,12 @@ export function CheckoutPage() {
   const [minDeliveryOrderTotal, setMinDeliveryOrderTotal] = useState<number | null>(null);
   const [deliveryError, setDeliveryError] = useState<string | null>(null);
   const [phoneError, setPhoneError] = useState<string | null>(null);
+  const [addressSuggestions, setAddressSuggestions] = useState<AddressSuggestion[]>([]);
+  const [isSuggestLoading, setIsSuggestLoading] = useState(false);
+  const [isSuggestOpen, setIsSuggestOpen] = useState(false);
+  const [selectedSuggestion, setSelectedSuggestion] = useState<AddressSuggestion | null>(null);
+  const [lastValidatedAddress, setLastValidatedAddress] = useState<string | null>(null);
+  const [isAddressValid, setIsAddressValid] = useState(false);
 
   const totalAmount = getTotalAmount();
   
@@ -103,6 +109,54 @@ export function CheckoutPage() {
 
     loadSettings();
   }, [shopIdState]);
+
+  // Подсказки адресов (Yandex Suggest через backend)
+  useEffect(() => {
+    if (!shopIdState) return;
+    if (deliveryType !== 'delivery') {
+      setAddressSuggestions([]);
+      setIsSuggestOpen(false);
+      return;
+    }
+    // Подсказки нужны в основном для зон (там же требуется точный адрес)
+    if (deliveryTypeSettings !== 'zones') {
+      setAddressSuggestions([]);
+      setIsSuggestOpen(false);
+      return;
+    }
+
+    const query = address.trim();
+    if (query.length < 2) {
+      setAddressSuggestions([]);
+      setIsSuggestOpen(false);
+      return;
+    }
+
+    const timeoutId = setTimeout(async () => {
+      setIsSuggestLoading(true);
+      try {
+        const resp = await deliverySettingsApi.getAddressSuggestions(
+          query,
+          defaultCity || 'Екатеринбург',
+          shopIdState
+        );
+        if (resp.success) {
+          setAddressSuggestions(resp.suggestions || []);
+          setIsSuggestOpen(true);
+        } else {
+          setAddressSuggestions([]);
+          setIsSuggestOpen(false);
+        }
+      } catch {
+        setAddressSuggestions([]);
+        setIsSuggestOpen(false);
+      } finally {
+        setIsSuggestLoading(false);
+      }
+    }, 350);
+
+    return () => clearTimeout(timeoutId);
+  }, [address, deliveryType, deliveryTypeSettings, defaultCity, shopIdState]);
 
   // Загрузка способов оплаты
   useEffect(() => {
@@ -210,6 +264,9 @@ export function CheckoutPage() {
   // Расчет стоимости доставки при изменении адреса или типа доставки
   useEffect(() => {
     setDeliveryError(null);
+    // Любое ручное изменение адреса сбрасывает подтверждение
+    setIsAddressValid(false);
+    setLastValidatedAddress(null);
     if (deliveryType === 'delivery' && shopIdState) {
       const timeoutId = setTimeout(async () => {
         setIsCalculatingDelivery(true);
@@ -230,9 +287,14 @@ export function CheckoutPage() {
               if (result.valid && result.cost !== undefined) {
                 setDeliveryCost(result.cost);
                 setDeliveryError(null);
+                setIsAddressValid(true);
+                setLastValidatedAddress(result.address ?? trimmedAddress);
+                if (result.address) setAddress(result.address);
               } else {
                 setDeliveryCost(null);
                 setDeliveryError(result.error ?? 'Адрес не найден');
+                setIsAddressValid(false);
+                setLastValidatedAddress(null);
               }
             } else {
               setDeliveryCost(null);
@@ -252,6 +314,40 @@ export function CheckoutPage() {
       setDeliveryCost(null);
     }
   }, [address, deliveryType, totalAmount, shopIdState]);
+
+  const handleSelectSuggestion = async (s: AddressSuggestion) => {
+    if (!shopIdState) return;
+    setSelectedSuggestion(s);
+    setIsSuggestOpen(false);
+    setAddress(s.value);
+
+    // После выбора подсказки сразу делаем серверную валидацию/расчёт
+    setIsCalculatingDelivery(true);
+    setDeliveryError(null);
+    try {
+      const result = await deliverySettingsApi.calculateCost(s.value, totalAmount, shopIdState);
+      if (result.valid) {
+        if (result.cost !== undefined) setDeliveryCost(result.cost);
+        setDeliveryError(null);
+        setIsAddressValid(true);
+        setLastValidatedAddress(result.address ?? s.value);
+        if (result.address) setAddress(result.address);
+      } else {
+        setDeliveryCost(null);
+        setDeliveryError(result.error ?? 'Адрес не найден');
+        setIsAddressValid(false);
+        setLastValidatedAddress(null);
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Не удалось проверить адрес';
+      setDeliveryCost(null);
+      setDeliveryError(message);
+      setIsAddressValid(false);
+      setLastValidatedAddress(null);
+    } finally {
+      setIsCalculatingDelivery(false);
+    }
+  };
 
   // Имя по умолчанию из Telegram
   useEffect(() => {
@@ -304,6 +400,37 @@ export function CheckoutPage() {
     setIsSubmitting(true);
 
     try {
+      // Обязательная серверная проверка адреса перед созданием заказа (для доставки по зонам)
+      if (deliveryType === 'delivery' && deliveryTypeSettings === 'zones') {
+        const trimmedAddress = address.trim();
+        if (trimmedAddress.length < 6) {
+          setDeliveryError('Введите корректный адрес доставки');
+          return;
+        }
+        // Если адрес не валидирован или изменился — валидируем прямо сейчас
+        if (!isAddressValid || !lastValidatedAddress || lastValidatedAddress !== trimmedAddress) {
+          setIsCalculatingDelivery(true);
+          setDeliveryError(null);
+          try {
+            const result = await deliverySettingsApi.calculateCost(trimmedAddress, totalAmount, shopIdState);
+            if (!result.valid) {
+              setDeliveryError(result.error ?? 'Адрес не найден');
+              return;
+            }
+            if (result.cost !== undefined) setDeliveryCost(result.cost);
+            setIsAddressValid(true);
+            setLastValidatedAddress(result.address ?? trimmedAddress);
+            if (result.address) setAddress(result.address);
+          } catch (error) {
+            const message = error instanceof Error ? error.message : 'Не удалось проверить адрес';
+            setDeliveryError(message);
+            return;
+          } finally {
+            setIsCalculatingDelivery(false);
+          }
+        }
+      }
+
       const orderItems = items.map((item) => ({
         product_id: item.product.id,
         quantity: item.quantity,
@@ -323,6 +450,8 @@ export function CheckoutPage() {
       if (selectedPaymentMethod === 'yookassa') {
         const payment = await ordersApi.createYooKassaPayment(shopIdState, createdOrder.id, initData);
         if (payment?.confirmation_url) {
+          // Заказ уже создан — очищаем корзину, чтобы после возврата из оплаты она была пустой
+          clearCart();
           window.location.href = payment.confirmation_url;
           return;
         }
@@ -409,17 +538,61 @@ export function CheckoutPage() {
                   <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
                     Адрес доставки {deliveryTypeSettings === 'zones' ? '*' : ''}
                   </label>
-                  <textarea
-                    required={deliveryTypeSettings === 'zones'}
-                    value={address}
-                    onChange={(e) => setAddress(e.target.value)}
-                    rows={3}
-                    className="w-full px-4 py-3 rounded-xl border-2 border-amber-200 dark:border-amber-900 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none"
-                    placeholder={deliveryTypeSettings === 'fixed' 
-                      ? `Укажите адрес доставки (необязательно)${defaultCity ? ` (${defaultCity})` : ''}`
-                      : `Укажите адрес доставки${defaultCity ? ` (${defaultCity})` : ''}`
-                    }
-                  />
+                  <div className="relative">
+                    <textarea
+                      required={deliveryTypeSettings === 'zones'}
+                      value={address}
+                      onChange={(e) => {
+                        setAddress(e.target.value);
+                        setSelectedSuggestion(null);
+                      }}
+                      onFocus={() => {
+                        if (addressSuggestions.length > 0) setIsSuggestOpen(true);
+                      }}
+                      rows={3}
+                      className="w-full px-4 py-3 rounded-xl border-2 border-amber-200 dark:border-amber-900 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none"
+                      placeholder={deliveryTypeSettings === 'fixed' 
+                        ? `Укажите адрес доставки (необязательно)${defaultCity ? ` (${defaultCity})` : ''}`
+                        : `Укажите адрес доставки${defaultCity ? ` (${defaultCity})` : ''}`
+                      }
+                    />
+
+                    {deliveryTypeSettings === 'zones' && isSuggestOpen && (isSuggestLoading || addressSuggestions.length > 0) && (
+                      <div className="absolute z-40 left-0 right-0 mt-2 bg-white dark:bg-gray-900 rounded-2xl border-2 border-amber-200 dark:border-amber-900 shadow-2xl overflow-hidden">
+                        {isSuggestLoading && (
+                          <div className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
+                            Ищем подсказки...
+                          </div>
+                        )}
+                        {!isSuggestLoading && addressSuggestions.length === 0 && (
+                          <div className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
+                            Подсказки не найдены
+                          </div>
+                        )}
+                        {!isSuggestLoading && addressSuggestions.length > 0 && (
+                          <div className="max-h-64 overflow-auto">
+                            {addressSuggestions.map((sug, idx) => (
+                              <button
+                                key={`${sug.value}-${idx}`}
+                                type="button"
+                                onClick={() => handleSelectSuggestion(sug)}
+                                className="w-full text-left px-4 py-3 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors border-b border-amber-100 dark:border-amber-900/40 last:border-b-0"
+                              >
+                                <div className="text-sm font-bold text-gray-900 dark:text-white">
+                                  {sug.display || sug.value}
+                                </div>
+                                {sug.subtitle && (
+                                  <div className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+                                    {sug.subtitle}
+                                  </div>
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                   {deliveryTypeSettings === 'zones' && isCalculatingDelivery && (
                     <p className="text-xs text-gray-500 mt-1">Расчет стоимости доставки...</p>
                   )}
@@ -431,6 +604,12 @@ export function CheckoutPage() {
                   {deliveryTypeSettings === 'fixed' && deliveryCost !== null && (
                     <p className="text-xs text-gray-500 mt-1">
                       Фиксированная стоимость доставки
+                    </p>
+                  )}
+                  {deliveryTypeSettings === 'zones' && !deliveryError && address.trim().length > 5 && isAddressValid && (
+                    <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+                      Адрес подтверждён
+                      {selectedSuggestion ? ' (выбран из подсказок)' : ''}
                     </p>
                   )}
                   {deliveryError && (
