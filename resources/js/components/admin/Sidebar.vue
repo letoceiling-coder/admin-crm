@@ -194,7 +194,7 @@
         class="flex items-center rounded-xl text-sm font-medium transition-all px-4 py-3 gap-3"
         :class="[
           isCollapsed ? 'justify-center' : '',
-          route.name === 'admin.payment-methods'
+          route.name === 'admin.payment-methods' || route.name === 'admin.payment-methods.edit'
             ? 'bg-gray-800 text-white'
             : 'text-gray-300 hover:bg-gray-800 hover:text-white'
         ]"

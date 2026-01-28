@@ -89,8 +89,14 @@ const routes = [
                       {
                         path: 'payment-methods',
                         name: 'admin.payment-methods',
-                        component: () => import('../pages/admin/PaymentMethodSettingsPage.vue'),
+                        component: () => import('../pages/admin/PaymentMethodsPage.vue'),
                         meta: { title: 'Способы оплаты' },
+                      },
+                      {
+                        path: 'payment-methods/:code',
+                        name: 'admin.payment-methods.edit',
+                        component: () => import('../pages/admin/PaymentMethodSettingsFormPage.vue'),
+                        meta: { title: 'Настройки способа оплаты' },
                       },
       {
         path: 'shop-bot-users',
