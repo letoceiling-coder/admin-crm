@@ -115,6 +115,110 @@ class TelegramBotService
     }
 
     /**
+     * Установить описание бота (полное, «О чём этот бот»). Показывается на странице бота до /start.
+     * https://core.telegram.org/bots/api#setmydescription
+     *
+     * @param string $token Токен бота
+     * @param string $description Текст 0-512 символов
+     * @param string|null $languageCode Двухбуквенный код языка (ru, en и т.д.)
+     * @return array{success: bool, error?: string}
+     */
+    public function setMyDescription(string $token, string $description, ?string $languageCode = null): array
+    {
+        $url = $this->baseUrl . $token . '/setMyDescription';
+        $payload = ['description' => $description];
+        if ($languageCode !== null && $languageCode !== '') {
+            $payload['language_code'] = $languageCode;
+        }
+        return $this->postBotInfo($url, $payload, 'setMyDescription');
+    }
+
+    /**
+     * Установить краткое описание бота. Показывается на странице бота до /start.
+     * https://core.telegram.org/bots/api#setmyshortdescription
+     *
+     * @param string $token Токен бота
+     * @param string $shortDescription Текст 0-120 символов
+     * @param string|null $languageCode Двухбуквенный код языка
+     * @return array{success: bool, error?: string}
+     */
+    public function setMyShortDescription(string $token, string $shortDescription, ?string $languageCode = null): array
+    {
+        $url = $this->baseUrl . $token . '/setMyShortDescription';
+        $payload = ['short_description' => $shortDescription];
+        if ($languageCode !== null && $languageCode !== '') {
+            $payload['language_code'] = $languageCode;
+        }
+        return $this->postBotInfo($url, $payload, 'setMyShortDescription');
+    }
+
+    /**
+     * Получить текущее описание бота (getMyDescription).
+     *
+     * @param string $token Токен бота
+     * @param string|null $languageCode Код языка
+     * @return array{success: bool, description?: string, error?: string}
+     */
+    public function getMyDescription(string $token, ?string $languageCode = null): array
+    {
+        $url = $this->baseUrl . $token . '/getMyDescription';
+        $url .= $languageCode ? '?language_code=' . urlencode($languageCode) : '';
+        try {
+            $response = Http::timeout(10)->get($url);
+            if (!$response->successful()) {
+                $error = $response->json('description', 'Unknown error');
+                return ['success' => false, 'error' => $error];
+            }
+            $result = $response->json('result', []);
+            return ['success' => true, 'description' => $result['description'] ?? ''];
+        } catch (\Throwable $e) {
+            Log::error('TelegramBotService: getMyDescription', ['error' => $e->getMessage()]);
+            return ['success' => false, 'error' => $e->getMessage()];
+        }
+    }
+
+    /**
+     * Получить краткое описание бота (getMyShortDescription).
+     *
+     * @param string $token Токен бота
+     * @param string|null $languageCode Код языка
+     * @return array{success: bool, short_description?: string, error?: string}
+     */
+    public function getMyShortDescription(string $token, ?string $languageCode = null): array
+    {
+        $url = $this->baseUrl . $token . '/getMyShortDescription';
+        $url .= $languageCode ? '?language_code=' . urlencode($languageCode) : '';
+        try {
+            $response = Http::timeout(10)->get($url);
+            if (!$response->successful()) {
+                $error = $response->json('description', 'Unknown error');
+                return ['success' => false, 'error' => $error];
+            }
+            $result = $response->json('result', []);
+            return ['success' => true, 'short_description' => $result['short_description'] ?? ''];
+        } catch (\Throwable $e) {
+            Log::error('TelegramBotService: getMyShortDescription', ['error' => $e->getMessage()]);
+            return ['success' => false, 'error' => $e->getMessage()];
+        }
+    }
+
+    private function postBotInfo(string $url, array $payload, string $methodName): array
+    {
+        try {
+            $response = Http::timeout(10)->asJson()->post($url, $payload);
+            if (!$response->successful()) {
+                $error = $response->json('description', 'Unknown error');
+                Log::warning("TelegramBotService: {$methodName}", ['error' => $error]);
+                return ['success' => false, 'error' => $error];
+            }
+            return ['success' => true];
+        } catch (\Throwable $e) {
+            Log::error("TelegramBotService: {$methodName}", ['error' => $e->getMessage()]);
+            return ['success' => false, 'error' => $e->getMessage()];
+        }
+    }
+
+    /**
      * Установить webhook для бота
      *
      * @param string $token Токен бота
@@ -275,6 +379,52 @@ class TelegramBotService
             return ['success' => true, 'message_id' => $data['message_id'] ?? null];
         } catch (\Throwable $e) {
             Log::error('TelegramBotService: исключение при отправке фото', ['error' => $e->getMessage()]);
+            return ['success' => false, 'error' => $e->getMessage()];
+        }
+    }
+
+    /**
+     * Отправить видео в Telegram (официальный API: sendVideo)
+     * https://core.telegram.org/bots/api#sendvideo
+     *
+     * @param string $token Токен бота
+     * @param int|string $chatId ID чата
+     * @param string $video URL видео или file_id
+     * @param string|null $caption Подпись к видео
+     * @return array{success: bool, message_id?: int, error?: string}
+     */
+    public function sendVideo(
+        string $token,
+        int|string $chatId,
+        string $video,
+        ?string $caption = null
+    ): array {
+        $url = $this->baseUrl . $token . '/sendVideo';
+
+        $payload = [
+            'chat_id' => $chatId,
+            'video' => $video,
+        ];
+        if ($caption !== null && $caption !== '') {
+            $payload['caption'] = $caption;
+        }
+
+        try {
+            $response = Http::timeout(30)->asJson()->post($url, $payload);
+
+            if (!$response->successful()) {
+                $error = $response->json('description', 'Unknown error');
+                Log::warning('TelegramBotService: ошибка отправки видео', [
+                    'chat_id' => $chatId,
+                    'error' => $error,
+                ]);
+                return ['success' => false, 'error' => $error];
+            }
+
+            $data = $response->json('result');
+            return ['success' => true, 'message_id' => $data['message_id'] ?? null];
+        } catch (\Throwable $e) {
+            Log::error('TelegramBotService: исключение при отправке видео', ['error' => $e->getMessage()]);
             return ['success' => false, 'error' => $e->getMessage()];
         }
     }

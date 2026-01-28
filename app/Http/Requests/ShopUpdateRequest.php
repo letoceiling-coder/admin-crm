@@ -31,6 +31,8 @@ class ShopUpdateRequest extends FormRequest
             'ogrn' => ['nullable', 'string', 'max:20'],
             'telegram_bot_token' => ['nullable', 'string', 'max:255'],
             'telegram_bot_name' => ['nullable', 'string', 'max:255'],
+            'telegram_bot_short_description' => ['nullable', 'string', 'max:120'],
+            'telegram_bot_description' => ['nullable', 'string', 'max:512'],
             'welcome_message' => ['nullable', 'string', 'max:4096'],
             'welcome_photo_media_id' => ['nullable', 'integer', 'exists:media,id'],
             'addresses' => ['nullable', 'array'],

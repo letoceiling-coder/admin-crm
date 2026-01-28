@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Shop;
+use App\Models\ShopBotUser;
 use App\Services\TelegramBotService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -35,13 +36,42 @@ class TelegramWebhookController extends Controller
             return response()->json(['ok' => true]);
         }
 
-        // Обработка /start: приветствие + кнопка Mini App
+        // Обработка /start: сохраняем/обновляем пользователя магазина + приветствие + кнопка Mini App
         $message = $payload['message'] ?? null;
         if ($message && isset($message['text']) && trim($message['text']) === '/start') {
+            $this->upsertShopBotUser($shopModel, $message);
             $this->handleStartCommand($shopModel, $message);
         }
 
         return response()->json(['ok' => true]);
+    }
+
+    private function upsertShopBotUser(Shop $shop, array $message): void
+    {
+        $from = $message['from'] ?? null;
+        $chat = $message['chat'] ?? null;
+        if (!$from || !$chat) {
+            return;
+        }
+        $telegramUserId = (int) ($from['id'] ?? 0);
+        $chatId = (int) ($chat['id'] ?? 0);
+        if ($telegramUserId === 0 || $chatId === 0) {
+            return;
+        }
+        ShopBotUser::updateOrCreate(
+            [
+                'shop_id' => $shop->id,
+                'telegram_user_id' => $telegramUserId,
+            ],
+            [
+                'telegram_chat_id' => $chatId,
+                'username' => $from['username'] ?? null,
+                'first_name' => $from['first_name'] ?? null,
+                'last_name' => $from['last_name'] ?? null,
+                'language_code' => $from['language_code'] ?? null,
+                'started_at' => now(),
+            ]
+        );
     }
 
     private function handleStartCommand(Shop $shop, array $message): void

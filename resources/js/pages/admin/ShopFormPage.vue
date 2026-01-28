@@ -157,6 +157,42 @@
             </div>
           </div>
 
+          <!-- Оформление страницы бота до /start (краткое и полное описание) -->
+          <div class="space-y-2 pt-4 border-t border-gray-200">
+            <h3 class="text-sm font-medium text-gray-700">Оформление страницы бота (до нажатия «Старт»)</h3>
+            <p class="text-xs text-gray-500">
+              Текст, который видит пользователь, когда открыл бота, но ещё не нажал «Старт». Задаётся через Bot API (setMyShortDescription, setMyDescription).
+            </p>
+            <div>
+              <label for="telegram_bot_short_description" class="block text-sm text-gray-600 mb-1">
+                Краткое описание (до 120 символов)
+              </label>
+              <input
+                id="telegram_bot_short_description"
+                v-model="form.telegram_bot_short_description"
+                type="text"
+                maxlength="120"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Например: Заказ еды с доставкой и самовывозом"
+              />
+              <p class="mt-1 text-xs text-gray-500">{{ (form.telegram_bot_short_description || '').length }}/120</p>
+            </div>
+            <div>
+              <label for="telegram_bot_description" class="block text-sm text-gray-600 mb-1">
+                Полное описание — «О чём этот бот» (до 512 символов)
+              </label>
+              <textarea
+                id="telegram_bot_description"
+                v-model="form.telegram_bot_description"
+                rows="4"
+                maxlength="512"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Официальный Telegram-бот «Свой Хлеб». Заказывайте горячие блюда, выпечку и готовую еду с доставкой или самовывозом через мини-приложение. Нажмите «Открыть приложение», чтобы сделать заказ."
+              ></textarea>
+              <p class="mt-1 text-xs text-gray-500">{{ (form.telegram_bot_description || '').length }}/512</p>
+            </div>
+          </div>
+
           <!-- Приветственное сообщение бота (/start) -->
           <div class="space-y-2 pt-4 border-t border-gray-200">
             <h3 class="text-sm font-medium text-gray-700">Приветственное сообщение (команда /start)</h3>
@@ -368,6 +404,8 @@ const form = ref({
   ogrn: '',
   telegram_bot_token: '',
   telegram_bot_name: '',
+  telegram_bot_short_description: '',
+  telegram_bot_description: '',
   welcome_message: '',
   welcome_photo_media_id: null,
   slug: '',
@@ -482,6 +520,8 @@ const fetchShop = async () => {
       ogrn: shop.ogrn || '',
       telegram_bot_token: shop.telegram_bot_token || '',
       telegram_bot_name: shop.telegram_bot_name || '',
+      telegram_bot_short_description: shop.telegram_bot_short_description || '',
+      telegram_bot_description: shop.telegram_bot_description || '',
       welcome_message: shop.welcome_message || '',
       welcome_photo_media_id: shop.welcome_photo_media_id ?? null,
       slug: shop.slug || '',
@@ -516,6 +556,8 @@ const submitForm = async () => {
       ogrn: form.value.ogrn || null,
       telegram_bot_token: form.value.telegram_bot_token || null,
       telegram_bot_name: form.value.telegram_bot_name || null,
+      telegram_bot_short_description: form.value.telegram_bot_short_description || null,
+      telegram_bot_description: form.value.telegram_bot_description || null,
       welcome_message: form.value.welcome_message || null,
       welcome_photo_media_id: form.value.welcome_photo_media_id || null,
       addresses: form.value.addresses.filter(a => a.trim() !== ''),

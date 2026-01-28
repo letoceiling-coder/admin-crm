@@ -153,13 +153,15 @@ class ShopController extends Controller
                 'ogrn' => $request->ogrn,
                 'telegram_bot_token' => $request->telegram_bot_token,
                 'telegram_bot_name' => $request->telegram_bot_name,
+                'telegram_bot_short_description' => $request->telegram_bot_short_description,
+                'telegram_bot_description' => $request->telegram_bot_description,
                 'welcome_message' => $request->welcome_message,
                 'welcome_photo_media_id' => $request->welcome_photo_media_id,
             ]);
 
-            // Автоматическая установка webhook при сохранении токена (официальный API: setWebhook)
+            // Автоматическая установка webhook и описания бота при сохранении токена
             if ($shop->telegram_bot_token) {
-                $telegramService = new TelegramBotService();
+                $telegramService = app(TelegramBotService::class);
                 if ($telegramService->validateToken($shop->telegram_bot_token)) {
                     $webhookUrl = rtrim(config('app.url', 'https://crm.neeklo.ru'), '/') . '/api/telegram/webhook/' . $shop->id;
                     $setResult = $telegramService->setWebhook($shop->telegram_bot_token, $webhookUrl);
@@ -169,6 +171,22 @@ class ShopController extends Controller
                         if ($bot) {
                             $shop->update(['telegram_bot_name' => trim(($bot['first_name'] ?? '') . ' ' . ($bot['last_name'] ?? '')) . ' (@' . ($bot['username'] ?? '') . ')']);
                         }
+                    }
+                    // Оформление страницы бота до /start (setMyShortDescription, setMyDescription)
+                    $lang = 'ru';
+                    if ($request->filled('telegram_bot_short_description')) {
+                        $telegramService->setMyShortDescription(
+                            $shop->telegram_bot_token,
+                            $request->telegram_bot_short_description,
+                            $lang
+                        );
+                    }
+                    if ($request->filled('telegram_bot_description')) {
+                        $telegramService->setMyDescription(
+                            $shop->telegram_bot_token,
+                            $request->telegram_bot_description,
+                            $lang
+                        );
                     }
                 }
             }

@@ -22,6 +22,8 @@ class Shop extends Model
         'ogrn',
         'telegram_bot_token',
         'telegram_bot_name',
+        'telegram_bot_short_description',
+        'telegram_bot_description',
         'welcome_message',
         'welcome_photo_media_id',
     ];
@@ -160,5 +162,13 @@ class Shop extends Model
     public function welcomePhoto(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(Media::class, 'welcome_photo_media_id');
+    }
+
+    /**
+     * Пользователи бота магазина (Telegram, при /start)
+     */
+    public function botUsers(): HasMany
+    {
+        return $this->hasMany(ShopBotUser::class);
     }
 }

@@ -92,6 +92,18 @@ const routes = [
                         component: () => import('../pages/admin/PaymentMethodSettingsPage.vue'),
                         meta: { title: 'Способы оплаты' },
                       },
+      {
+        path: 'shop-bot-users',
+        name: 'admin.shop-bot-users',
+        component: () => import('../pages/admin/ShopBotUsersPage.vue'),
+        meta: { title: 'Пользователи магазина' },
+      },
+      {
+        path: 'shop-bot-users/broadcast',
+        name: 'admin.shop-bot-users.broadcast',
+        component: () => import('../pages/admin/BroadcastPage.vue'),
+        meta: { title: 'Рассылка' },
+      },
       // Каталог
       {
         path: 'categories',

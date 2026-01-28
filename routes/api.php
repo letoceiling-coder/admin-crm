@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\SettingsController;
 use App\Http\Controllers\Api\DeliverySettingsController;
 use App\Http\Controllers\Api\PaymentMethodSettingsController;
 use App\Http\Controllers\Api\TelegramWebhookController;
+use App\Http\Controllers\Api\ShopBotUserController;
 
 /*
 |--------------------------------------------------------------------------
@@ -81,6 +82,8 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/bot-info', [ShopController::class, 'getBotInfo']);
             Route::get('/webhook-info', [ShopController::class, 'getWebhookInfo']);
             Route::post('/send-test-message', [ShopController::class, 'sendTestMessage']);
+            Route::get('/bot-users', [ShopBotUserController::class, 'index']);
+            Route::post('/bot-users/broadcast', [ShopBotUserController::class, 'broadcast']);
         });
 
         // Управление каталогом
