@@ -274,4 +274,32 @@ router.beforeEach(async (to, from, next) => {
   next();
 });
 
+// Автовосстановление после деплоя/кэша: если чанк страницы не найден и сервер отдал HTML (404/index.php),
+// lazy-import падает с "Failed to fetch dynamically imported module" / MIME text/html.
+// В этом случае делаем один принудительный reload, чтобы получить актуальный HTML+manifest.
+router.onError((error) => {
+  const message = String(error?.message || error || '');
+  const isChunkLoadError =
+    /Failed to fetch dynamically imported module/i.test(message) ||
+    /Importing a module script failed/i.test(message) ||
+    /Expected a JavaScript-or-Wasm module script/i.test(message);
+
+  if (!isChunkLoadError) return;
+
+  try {
+    const key = '__admin_chunk_reload__';
+    if (sessionStorage.getItem(key) === '1') {
+      // Уже перезагружались — не зацикливаемся
+      // eslint-disable-next-line no-console
+      console.error('Chunk load failed after reload:', error);
+      return;
+    }
+    sessionStorage.setItem(key, '1');
+    window.location.reload();
+  } catch {
+    // Если sessionStorage недоступен — просто пробуем перезагрузить
+    window.location.reload();
+  }
+});
+
 export default router;
