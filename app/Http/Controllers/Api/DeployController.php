@@ -78,21 +78,37 @@ class DeployController extends Controller
                 Log::warning('⚠️ Manifest.json не найден после git pull. Убедитесь, что файлы собраны локально и закоммичены в git.');
             }
 
-            // 1.6. Установка npm зависимостей (если npm доступен и не пропущено)
+            // 1.6. Установка npm и сборка админки (если npm доступен и не пропущено)
             $skipNpm = $request->input('skip_npm', false);
             if (!$skipNpm) {
                 $npmResult = $this->handleNpmInstall();
                 $result['data']['npm_install'] = $npmResult;
                 if (!$npmResult['success'] && $npmResult['status'] !== 'skipped') {
                     Log::warning('⚠️ npm install не выполнен: ' . ($npmResult['error'] ?? 'неизвестная ошибка'));
-                    // Не прерываем деплой, так как файлы могут быть уже собраны
+                }
+                // Если npm install успешен — собираем админку (Vite)
+                if ($npmResult['success'] && ($npmResult['status'] ?? '') === 'success') {
+                    $buildResult = $this->handleNpmBuild();
+                    $result['data']['npm_build'] = $buildResult;
+                    if (!$buildResult['success']) {
+                        Log::warning('⚠️ npm run build не выполнен: ' . ($buildResult['error'] ?? 'неизвестная ошибка'));
+                    }
+                } else {
+                    $result['data']['npm_build'] = [
+                        'status' => 'skipped',
+                        'message' => 'npm run build пропущен (npm install не выполнен)',
+                    ];
                 }
             } else {
                 $result['data']['npm_install'] = [
                     'status' => 'skipped',
                     'message' => 'npm install пропущен (skip_npm=true)',
                 ];
-                Log::info('npm install пропущен по запросу');
+                $result['data']['npm_build'] = [
+                    'status' => 'skipped',
+                    'message' => 'Соберите админку локально: npm run build, затем закоммитьте public/build и сделайте деплой.',
+                ];
+                Log::info('npm пропущен по запросу');
             }
 
             // 2. Composer install
@@ -866,6 +882,50 @@ class DeployController extends Controller
                 'success' => false,
                 'status' => 'error',
                 'message' => 'Исключение при выполнении npm install',
+                'error' => $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Выполнить npm run build (Vite — сборка админки)
+     */
+    protected function handleNpmBuild(): array
+    {
+        try {
+            if (!$this->isNpmAvailable()) {
+                return [
+                    'success' => false,
+                    'status' => 'skipped',
+                    'message' => 'npm недоступен',
+                ];
+            }
+            $npmPath = $this->getNpmPath();
+            Log::info('🔨 Выполнение npm run build...');
+            $process = Process::path($this->basePath)
+                ->timeout(300)
+                ->run("{$npmPath} run build 2>&1");
+            if ($process->successful()) {
+                Log::info('✅ npm run build выполнен успешно');
+                return [
+                    'success' => true,
+                    'status' => 'success',
+                    'message' => 'npm run build выполнен успешно',
+                ];
+            }
+            $error = $process->errorOutput() ?: $process->output();
+            return [
+                'success' => false,
+                'status' => 'error',
+                'message' => 'npm run build завершился с ошибкой',
+                'error' => substr($error, 0, 500),
+            ];
+        } catch (\Exception $e) {
+            Log::error('Ошибка npm run build: ' . $e->getMessage());
+            return [
+                'success' => false,
+                'status' => 'error',
+                'message' => 'Исключение при npm run build',
                 'error' => $e->getMessage(),
             ];
         }

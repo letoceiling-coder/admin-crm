@@ -1,6 +1,7 @@
 /.phpunit.cache
 /node_modules
-/public/build
+# Раскомментируйте следующую строку, если собираете админку только на сервере (npm доступен):
+# /public/build
 /public/hot
 /public/storage
 /storage/*.key
