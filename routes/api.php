@@ -54,6 +54,9 @@ Route::post('/shops/{shopId}/orders', [PublicOrderController::class, 'store']);
 Route::get('/shops/{shopId}/orders/{orderId}', [PublicOrderController::class, 'show'])->where('orderId', '[0-9]+');
 Route::get('/settings/default-image', [SettingsController::class, 'getDefaultImage']);
 
+// Webhook ЮКасса (публичный, привязан к shop_id — ЮКасса шлёт POST сюда)
+Route::post('/shops/{shopId}/webhooks/yookassa', [PaymentMethodSettingsController::class, 'webhookYooKassa'])->where('shopId', '[0-9]+');
+
 // Публичные роуты для настроек доставки (для фронтенда)
 Route::prefix('v1')->group(function () {
     Route::get('delivery-settings', [DeliverySettingsController::class, 'getSettings']);

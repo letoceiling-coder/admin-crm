@@ -234,13 +234,31 @@
 
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">URL для уведомлений (webhook)</label>
+            <p v-if="method.yookassa_webhook_suggested_url" class="text-xs text-gray-500 mb-2">
+              Рекомендуемый URL для этого магазина (указать в личном кабинете ЮКасса → Настройки → Уведомления):
+            </p>
+            <div v-if="method.yookassa_webhook_suggested_url" class="flex gap-2 mb-2">
+              <input
+                :value="method.yookassa_webhook_suggested_url"
+                type="text"
+                readonly
+                class="flex-1 h-10 px-3 rounded-lg border border-gray-300 bg-gray-50 text-gray-800 text-sm font-mono"
+              />
+              <button
+                type="button"
+                @click="copyWebhookUrl"
+                class="h-10 px-4 rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 shrink-0 font-medium"
+              >
+                Копировать
+              </button>
+            </div>
             <input
               v-model="method.yookassa_webhook_url"
               type="url"
-              placeholder="https://ваш-домен.ru/api/..."
+              :placeholder="method.yookassa_webhook_suggested_url || 'https://ваш-домен.ru/api/...'"
               class="w-full h-10 px-3 rounded-lg border border-gray-300 bg-white text-gray-900"
             />
-            <p class="text-xs text-gray-500 mt-1">Укажите в личном кабинете ЮКасса в разделе «Уведомления»</p>
+            <p class="text-xs text-gray-500 mt-1">При необходимости укажите другой URL или оставьте рекомендуемый (сохраните настройки после «Копировать»)</p>
           </div>
 
           <div class="flex items-center gap-3">
@@ -335,13 +353,15 @@ const code = computed(() => route.params.code);
 function mergeYooKassaIntegration(m) {
   if (!m || m.payment_method_code !== 'yookassa') return m;
   const yi = m.yookassa_integration || {};
+  const suggestedUrl = yi.yookassa_webhook_suggested_url || '';
   return {
     ...m,
     yookassa_shop_id: yi.yookassa_shop_id ?? '',
     yookassa_test_shop_id: yi.yookassa_test_shop_id ?? '',
     yookassa_is_test_mode: yi.yookassa_is_test_mode !== false,
     yookassa_auto_capture: yi.yookassa_auto_capture !== false,
-    yookassa_webhook_url: yi.yookassa_webhook_url ?? '',
+    yookassa_webhook_url: yi.yookassa_webhook_url ?? suggestedUrl,
+    yookassa_webhook_suggested_url: suggestedUrl,
     yookassa_secret_key: '',
     yookassa_test_secret_key: '',
   };
@@ -448,6 +468,16 @@ async function testYooKassaConnection() {
   } finally {
     testingConnection.value = false;
   }
+}
+
+function copyWebhookUrl() {
+  const url = method.value?.yookassa_webhook_suggested_url;
+  if (!url) return;
+  navigator.clipboard.writeText(url).then(() => {
+    Swal.fire({ icon: 'success', title: 'Скопировано', timer: 1500, showConfirmButton: false });
+  }).catch(() => {
+    Swal.fire({ icon: 'error', title: 'Не удалось скопировать' });
+  });
 }
 
 watch([() => shopStore.selectedShopId, code], () => {

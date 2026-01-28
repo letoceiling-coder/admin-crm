@@ -132,11 +132,11 @@ export function OrderDetailPage() {
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className={cn(`${colors.cardBg} rounded-2xl p-4 border-2 ${colors.border}`)}
+          className={cn(`${colors.cardBg} rounded-2xl p-4 border-2 ${colors.border} shadow-sm`)}
         >
           <div className="flex items-center justify-between flex-wrap gap-2">
-            <span className="font-mono text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1">
-              <Hash className="h-4 w-4" />
+            <span className="font-mono text-sm text-gray-600 dark:text-gray-400 flex items-center gap-1">
+              <Hash className="h-4 w-4 shrink-0" />
               {order.order_number}
             </span>
             <span className={cn('text-sm font-medium px-2 py-1 rounded-full', STATUS_COLORS[order.status])}>
@@ -156,10 +156,10 @@ export function OrderDetailPage() {
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className={cn(`${colors.cardBg} rounded-2xl p-4 border-2 ${colors.border}`)}
+            className={cn(`${colors.cardBg} rounded-2xl p-4 border-2 ${colors.border} shadow-sm`)}
           >
             <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
-              <MapPin className="h-4 w-4" />
+              <MapPin className="h-4 w-4 shrink-0" />
               Адрес доставки
             </h3>
             <p className="text-gray-900 dark:text-white">{order.customer_address}</p>
@@ -170,7 +170,7 @@ export function OrderDetailPage() {
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className={cn(`${colors.cardBg} rounded-2xl p-4 border-2 ${colors.border}`)}
+            className={cn(`${colors.cardBg} rounded-2xl p-4 border-2 ${colors.border} shadow-sm`)}
           >
             <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Состав заказа</h3>
             <ul className="space-y-2">
@@ -179,7 +179,7 @@ export function OrderDetailPage() {
                   <span className="text-gray-900 dark:text-white">
                     {item.product?.name ?? `Товар #${item.product_id}`} × {item.quantity}
                   </span>
-                  <span className="font-medium text-gray-700 dark:text-gray-300 shrink-0">
+                  <span className="font-medium text-gray-800 dark:text-gray-300 shrink-0">
                     {formatMoney(Number(item.price) * item.quantity)}
                   </span>
                 </li>
@@ -195,11 +195,11 @@ export function OrderDetailPage() {
             type="button"
             onClick={handleRepeatOrder}
             className={cn(
-              'w-full flex items-center justify-center gap-2 py-4 rounded-2xl font-bold text-white shadow-lg',
+              'w-full flex items-center justify-center gap-2 py-4 rounded-2xl font-bold text-white shadow-lg bg-gradient-to-r',
               colors.buttonGradient
             )}
           >
-            <RotateCcw className="h-5 w-5" />
+            <RotateCcw className="h-5 w-5 shrink-0" aria-hidden />
             Повторить заказ
           </motion.button>
         )}

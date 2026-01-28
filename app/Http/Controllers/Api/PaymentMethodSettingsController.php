@@ -45,6 +45,9 @@ class PaymentMethodSettingsController extends Controller
                     $data['description'] = $setting->getDescription();
                     if ($setting->payment_method_code === PaymentMethodSetting::CODE_YOOKASSA) {
                         $data['yookassa_integration'] = $setting->getYooKassaConfigForApi();
+                        if ($setting->shop_id) {
+                            $data['yookassa_integration']['yookassa_webhook_suggested_url'] = rtrim(config('app.url'), '/') . '/api/shops/' . (int) $setting->shop_id . '/webhooks/yookassa';
+                        }
                     }
                     return $data;
                 }),
@@ -167,6 +170,8 @@ class PaymentMethodSettingsController extends Controller
                     'yookassa_auto_capture',
                     'yookassa_webhook_url',
                 ]));
+                // Не перезаписываем settings из запроса — они уже установлены в setYooKassaConfig
+                unset($validated['settings']);
             }
 
             $setting->update($validated);
@@ -178,6 +183,8 @@ class PaymentMethodSettingsController extends Controller
             $data['name'] = $setting->getName();
             if ($setting->payment_method_code === PaymentMethodSetting::CODE_YOOKASSA) {
                 $data['yookassa_integration'] = $setting->getYooKassaConfigForApi();
+                // Рекомендуемый URL для webhook (по shop_id, без привязки к другим магазинам)
+                $data['yookassa_integration']['yookassa_webhook_suggested_url'] = rtrim(config('app.url'), '/') . '/api/shops/' . (int) $shopId . '/webhooks/yookassa';
             }
             
             return response()->json([
@@ -257,5 +264,30 @@ class PaymentMethodSettingsController extends Controller
                 return $data;
             })->values(),
         ]);
+    }
+
+    /**
+     * Webhook от ЮКасса (публичный, привязан к shop_id).
+     * POST /api/shops/{shopId}/webhooks/yookassa
+     */
+    public function webhookYooKassa(Request $request, $shopId): JsonResponse
+    {
+        Log::info('YooKassa webhook received', [
+            'shop_id' => $shopId,
+            'event' => $request->input('event'),
+            'payment_id' => $request->input('object.id'),
+        ]);
+
+        $setting = PaymentMethodSetting::whereNull('user_id')
+            ->where('shop_id', $shopId)
+            ->where('payment_method_code', PaymentMethodSetting::CODE_YOOKASSA)
+            ->first();
+
+        if (!$setting || !$setting->is_enabled) {
+            return response()->json(['message' => 'Integration disabled'], 403);
+        }
+
+        // TODO: разбор event (payment.succeeded, payment.canceled и т.д.) и обновление платежей/заказов
+        return response()->json(['message' => 'OK'], 200);
     }
 }
