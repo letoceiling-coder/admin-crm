@@ -55,6 +55,10 @@ class Deploy extends Command
             if (!$this->option('skip-build')) {
                 $this->buildAdminPanel($dryRun);
                 $this->buildFrontend($dryRun);
+
+                // Жёсткие проверки: собранные файлы должны быть на месте и (при изменениях исходников) обновляться
+                $this->assertBuildArtifactsPresent($dryRun);
+                $this->assertBuildArtifactsMatchSources($dryRun);
             } else {
                 $this->warn('⚠️  Пропущена сборка (--skip-build)');
             }
@@ -287,7 +291,7 @@ class Deploy extends Command
         }
 
         if ($dryRun) {
-            $this->line('  [DRY-RUN] Выполнение: npm install && npm run build (админ-панель → public/build)');
+            $this->line('  [DRY-RUN] Выполнение: npm ci (fallback npm install) && npm run build (админ-панель → public/build)');
             $this->newLine();
             return;
         }
@@ -295,12 +299,19 @@ class Deploy extends Command
         $this->line('  📥 Установка зависимостей (корень проекта)...');
         $installProcess = Process::path($rootPath)
             ->timeout(600)
-            ->run('npm install');
-
+            ->run('npm ci');
         if (!$installProcess->successful()) {
-            $this->warn('  ⚠️  npm install завершился с ошибкой, продолжаем сборку...');
+            $this->warn('  ⚠️  npm ci завершился с ошибкой, пробуем npm install...');
+            $installProcess = Process::path($rootPath)
+                ->timeout(600)
+                ->run('npm install');
+            if (!$installProcess->successful()) {
+                $this->warn('  ⚠️  npm install тоже завершился с ошибкой, продолжаем сборку (возможно, зависимости уже установлены)...');
+            } else {
+                $this->line('  ✅ Зависимости установлены (npm install)');
+            }
         } else {
-            $this->line('  ✅ Зависимости установлены');
+            $this->line('  ✅ Зависимости установлены (npm ci)');
         }
 
         $this->line('  🔨 Сборка админ-панели (vite build)...');
@@ -336,7 +347,7 @@ class Deploy extends Command
         }
 
         if ($dryRun) {
-            $this->line('  [DRY-RUN] Выполнение: cd frontend && npm install && npm run build');
+            $this->line('  [DRY-RUN] Выполнение: cd frontend && npm ci (fallback npm install) && npm run build; затем копирование dist → public/miniapp');
             return;
         }
 
@@ -352,14 +363,19 @@ class Deploy extends Command
         $this->line('  📥 Установка зависимостей...');
         $installProcess = Process::path($frontendPath)
             ->timeout(600) // 10 минут
-            ->run('npm install');
-
+            ->run('npm ci');
         if (!$installProcess->successful()) {
-            $this->warn('  ⚠️  Предупреждение: npm install завершился с ошибкой');
-            $this->warn('  ' . $installProcess->errorOutput());
-            $this->line('  💡 Продолжаем сборку, возможно зависимости уже установлены...');
+            $this->warn('  ⚠️  npm ci завершился с ошибкой, пробуем npm install...');
+            $installProcess = Process::path($frontendPath)
+                ->timeout(600)
+                ->run('npm install');
+            if (!$installProcess->successful()) {
+                $this->warn('  ⚠️  npm install тоже завершился с ошибкой, продолжаем сборку (возможно, зависимости уже установлены)...');
+            } else {
+                $this->line('  ✅ Зависимости установлены (npm install)');
+            }
         } else {
-            $this->line('  ✅ Зависимости установлены');
+            $this->line('  ✅ Зависимости установлены (npm ci)');
         }
 
         // Шаг 2: Сборка проекта
@@ -411,8 +427,93 @@ class Deploy extends Command
         // Копируем все файлы из dist в public/miniapp
         $this->copyDirectory($buildDir, $targetDir);
 
+        // Минимальная проверка, что миниапп действительно собран
+        if (!File::exists($targetDir . DIRECTORY_SEPARATOR . 'index.html')) {
+            throw new \Exception('Mini App сборка не содержит index.html в public/miniapp (проверьте Vite build/base/outDir)');
+        }
+
         $this->info('  ✅ Mini App собрана успешно');
         $this->info("  📁 Файлы скопированы в: {$targetDir}");
+        $this->newLine();
+    }
+
+    /**
+     * Проверить, что артефакты сборки существуют (public/build + public/miniapp)
+     */
+    protected function assertBuildArtifactsPresent(bool $dryRun): void
+    {
+        $this->info('🔎 Шаг 1c: Проверка артефактов сборки...');
+
+        if ($dryRun) {
+            $this->line('  [DRY-RUN] Проверка наличия public/build/manifest.json и public/miniapp/index.html');
+            $this->newLine();
+            return;
+        }
+
+        $manifest = public_path('build/manifest.json');
+        $assetsDir = public_path('build/assets');
+        $miniappIndex = public_path('miniapp/index.html');
+
+        if (!File::exists($manifest)) {
+            throw new \Exception('Не найден public/build/manifest.json. Сборка админки не выполнена или не записалась.');
+        }
+        if (!File::isDirectory($assetsDir)) {
+            throw new \Exception('Не найдена директория public/build/assets. Сборка админки не выполнена или не записалась.');
+        }
+        $assets = glob($assetsDir . '/*.{js,css}', GLOB_BRACE);
+        if (!$assets || count($assets) < 2) {
+            throw new \Exception('В public/build/assets слишком мало файлов. Проверьте, что vite build реально отработал.');
+        }
+        if (!File::exists($miniappIndex)) {
+            throw new \Exception('Не найден public/miniapp/index.html. Сборка Mini App (React) не выполнена или не скопировалась.');
+        }
+
+        $this->line('  ✅ public/build и public/miniapp на месте');
+        $this->newLine();
+    }
+
+    /**
+     * Гарантия "как на локале": если менялись исходники — должен измениться и билд.
+     * Иначе падаем, чтобы не отправить на сервер "старую" админку/миниапп.
+     */
+    protected function assertBuildArtifactsMatchSources(bool $dryRun): void
+    {
+        $this->info('🔎 Шаг 1d: Проверка соответствия исходников и билда...');
+
+        if ($dryRun) {
+            $this->line('  [DRY-RUN] Анализ git status (resources/* → public/build/*, frontend/src/* → public/miniapp/*)');
+            $this->newLine();
+            return;
+        }
+
+        $status = Process::run('git status --porcelain')->output();
+        $status = str_replace('\\', '/', $status); // на Windows
+
+        $hasAdminSources =
+            preg_match('/^(?:\\?\\?|[ MADRCU])\\s+resources\\/(js|css)\\//m', $status) ||
+            preg_match('/^(?:\\?\\?|[ MADRCU])\\s+(vite\\.config\\.js|tailwind\\.config\\.js|postcss\\.config\\.cjs|package\\.json|package-lock\\.json)$/m', $status);
+        $hasAdminBuild = preg_match('/^(?:\\?\\?|[ MADRCU])\\s+public\\/build\\//m', $status);
+
+        $hasMiniappSources =
+            preg_match('/^(?:\\?\\?|[ MADRCU])\\s+frontend\\/(src|public)\\//m', $status) ||
+            preg_match('/^(?:\\?\\?|[ MADRCU])\\s+frontend\\/(vite\\.config\\.ts|package\\.json|package-lock\\.json|tsconfig\\..*)$/m', $status);
+        $hasMiniappBuild = preg_match('/^(?:\\?\\?|[ MADRCU])\\s+public\\/miniapp\\//m', $status);
+
+        if ($hasAdminSources && !$hasAdminBuild) {
+            throw new \Exception(
+                'Обнаружены изменения в исходниках админки (resources/*), но public/build не изменился. ' .
+                'Сборка не обновила артефакты — деплой прерван.'
+            );
+        }
+
+        if ($hasMiniappSources && !$hasMiniappBuild) {
+            throw new \Exception(
+                'Обнаружены изменения в исходниках Mini App (frontend/*), но public/miniapp не изменился. ' .
+                'Сборка/копирование не обновили артефакты — деплой прерван.'
+            );
+        }
+
+        $this->line('  ✅ Билды соответствуют изменениям (или исходники не менялись)');
         $this->newLine();
     }
 
