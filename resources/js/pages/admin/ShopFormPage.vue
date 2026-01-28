@@ -389,6 +389,7 @@ const fetchShop = async () => {
     
     form.value = {
       name: shop.name || '',
+      template: shop.template || 'amber',
       inn: shop.inn || '',
       ogrn: shop.ogrn || '',
       telegram_bot_token: shop.telegram_bot_token || '',
