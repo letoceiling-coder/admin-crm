@@ -59,7 +59,7 @@ export function ProductCard({ product, onClick, variant = 'grid' }: ProductCardP
     return (
       <motion.div
         whileHover={{ x: 4 }}
-        className={cn('group relative flex cursor-pointer gap-4 rounded-3xl border-2 p-4 shadow-lg hover:shadow-2xl transition-all duration-300', colors.cardBg, colors.border)}
+        className={cn('group relative flex cursor-pointer gap-4 rounded-3xl border-2 p-4 shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden', colors.cardBg, colors.border)}
         onClick={onClick}
       >
         <div className={cn('h-24 w-24 flex-shrink-0 overflow-hidden rounded-2xl bg-gradient-to-br', colors.bgGradient)}>
@@ -81,12 +81,12 @@ export function ProductCard({ product, onClick, variant = 'grid' }: ProductCardP
               {product.description}
             </p>
           </div>
-          <div className="flex items-center justify-between mt-2">
-            <span className="text-xl font-black bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">
+          <div className="flex flex-wrap items-center justify-between gap-2 mt-2 min-w-0">
+            <span className="text-xl font-black bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent min-w-0 truncate">
               {product.price.toLocaleString('ru-RU')} ₽
             </span>
             {quantity > 0 ? (
-              <div className={cn('flex items-center gap-2 bg-gradient-to-r rounded-2xl p-1', colors.buttonGradient)}>
+              <div className={cn('flex items-center gap-2 bg-gradient-to-r rounded-2xl p-1 flex-shrink-0', colors.buttonGradient)}>
                 <motion.button
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
