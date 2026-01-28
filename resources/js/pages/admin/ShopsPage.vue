@@ -224,17 +224,6 @@ const getTemplateName = (template) => {
   return templates[template] || 'Янтарный';
 };
 
-const getTemplateName = (template) => {
-  const templates = {
-    'amber': 'Янтарный',
-    'blue': 'Синий',
-    'green': 'Зеленый',
-    'purple': 'Фиолетовый',
-    'monochrome': 'Черно-белый'
-  };
-  return templates[template] || 'Янтарный';
-};
-
 onMounted(() => {
   fetchShops();
 });
