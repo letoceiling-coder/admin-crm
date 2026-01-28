@@ -262,6 +262,51 @@ class TelegramBotService
     }
 
     /**
+     * Установить постоянную кнопку меню «Открыть приложение» (Mini App).
+     * https://core.telegram.org/bots/api#setchatmenubutton
+     * Без chat_id — кнопка для всех пользователей (видна до /start). С chat_id — для конкретного чата.
+     *
+     * @param string $token Токен бота
+     * @param string $url URL Mini App (HTTPS)
+     * @param string|null $text Текст кнопки (по умолчанию «Открыть приложение»)
+     * @param int|string|null $chatId ID чата или null для кнопки по умолчанию для всех
+     * @return array{success: bool, error?: string}
+     */
+    public function setChatMenuButton(
+        string $token,
+        string $url,
+        ?string $text = null,
+        int|string|null $chatId = null
+    ): array {
+        $apiUrl = $this->baseUrl . $token . '/setChatMenuButton';
+        $menuButton = [
+            'type' => 'web_app',
+            'text' => $text ?: 'Открыть приложение',
+            'web_app' => ['url' => $url],
+        ];
+        $payload = ['menu_button' => $menuButton];
+        if ($chatId !== null && $chatId !== '') {
+            $payload['chat_id'] = $chatId;
+        }
+        try {
+            $response = Http::timeout(10)->asJson()->post($apiUrl, $payload);
+            if (!$response->successful()) {
+                $error = $response->json('description', 'Unknown error');
+                Log::warning('TelegramBotService: ошибка setChatMenuButton', [
+                    'url' => $url,
+                    'chat_id' => $chatId,
+                    'error' => $error,
+                ]);
+                return ['success' => false, 'error' => $error];
+            }
+            return ['success' => true];
+        } catch (\Throwable $e) {
+            Log::error('TelegramBotService: setChatMenuButton', ['error' => $e->getMessage()]);
+            return ['success' => false, 'error' => $e->getMessage()];
+        }
+    }
+
+    /**
      * Удалить webhook для бота
      *
      * @param string $token Токен бота

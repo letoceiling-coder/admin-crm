@@ -172,6 +172,9 @@ class ShopController extends Controller
                             $shop->update(['telegram_bot_name' => trim(($bot['first_name'] ?? '') . ' ' . ($bot['last_name'] ?? '')) . ' (@' . ($bot['username'] ?? '') . ')']);
                         }
                     }
+                    // Постоянная кнопка «Открыть приложение» для всех пользователей (видна до /start)
+                    $miniAppUrl = rtrim(config('app.url', 'https://crm.neeklo.ru'), '/') . '/' . $shop->slug;
+                    $telegramService->setChatMenuButton($shop->telegram_bot_token, $miniAppUrl, 'Открыть приложение', null);
                     // Оформление страницы бота до /start (setMyShortDescription, setMyDescription)
                     $lang = 'ru';
                     if ($request->filled('telegram_bot_short_description')) {

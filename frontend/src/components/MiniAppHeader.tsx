@@ -1,8 +1,10 @@
 import { ChevronLeft, Search, Sun, Moon } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useQuery } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/contexts/ThemeContext';
+import { shopApi } from '@/services/api';
 
 interface MiniAppHeaderProps {
   title?: string;
@@ -20,6 +22,14 @@ export function MiniAppHeader({
   const navigate = useNavigate();
   const { shopSlug } = useParams<{ shopSlug?: string }>();
   const { isDark, toggleTheme, colors } = useTheme();
+
+  const { data: shop } = useQuery({
+    queryKey: ['shop', shopSlug],
+    queryFn: () => (shopSlug ? shopApi.getBySlug(shopSlug) : Promise.reject()),
+    enabled: !!shopSlug,
+  });
+
+  const headerTitle = shop?.name ?? title;
 
   const handleSearchClick = () => {
     if (shopSlug) {
@@ -56,7 +66,7 @@ export function MiniAppHeader({
 
       <div className="flex items-center gap-2 flex-1 justify-center px-2 min-w-0 max-w-full overflow-hidden">
         <h1 className={cn(`text-xl font-black bg-gradient-to-r ${colors.titleGradient} bg-clip-text text-transparent truncate max-w-full min-w-0 flex-1 text-center`)}>
-          {title}
+          {headerTitle}
         </h1>
       </div>
 

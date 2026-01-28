@@ -16,7 +16,7 @@ class Deploy extends Command
      */
     protected $signature = 'deploy
                             {--message= : Кастомное сообщение для коммита}
-                            {--skip-build : Пропустить npm run build}
+                            {--skip-build : Пропустить сборку админки (Vue) и Mini App (React)}
                             {--skip-npm : Пропустить npm install на сервере}
                             {--dry-run : Показать что будет сделано без выполнения}
                             {--insecure : Отключить проверку SSL сертификата (для разработки)}
@@ -51,11 +51,12 @@ class Deploy extends Command
             // Шаг 0: Проверка и установка composer
             $this->ensureComposerInstalled($dryRun);
 
-            // Шаг 1: Сборка фронтенда
+            // Шаг 1: Сборка админ-панели (Vue) и Mini App (React)
             if (!$this->option('skip-build')) {
+                $this->buildAdminPanel($dryRun);
                 $this->buildFrontend($dryRun);
             } else {
-                $this->warn('⚠️  Пропущена сборка фронтенда (--skip-build)');
+                $this->warn('⚠️  Пропущена сборка (--skip-build)');
             }
 
             // Шаг 2: Проверка git статуса
@@ -269,11 +270,62 @@ class Deploy extends Command
     }
 
     /**
-     * Сборка фронтенда
+     * Сборка админ-панели (Vue): npm run build в корне проекта → public/build
+     */
+    protected function buildAdminPanel(bool $dryRun): void
+    {
+        $this->info('📦 Шаг 1a: Сборка админ-панели (Vue)...');
+
+        $rootPath = base_path();
+        $packageJsonPath = $rootPath . '/package.json';
+        $viteConfigPath = $rootPath . '/vite.config.js';
+
+        if (!File::exists($packageJsonPath) || !File::exists($viteConfigPath)) {
+            $this->warn('  ⚠️  package.json или vite.config.js не найдены в корне, пропускаем сборку админки');
+            $this->newLine();
+            return;
+        }
+
+        if ($dryRun) {
+            $this->line('  [DRY-RUN] Выполнение: npm install && npm run build (админ-панель → public/build)');
+            $this->newLine();
+            return;
+        }
+
+        $this->line('  📥 Установка зависимостей (корень проекта)...');
+        $installProcess = Process::path($rootPath)
+            ->timeout(600)
+            ->run('npm install');
+
+        if (!$installProcess->successful()) {
+            $this->warn('  ⚠️  npm install завершился с ошибкой, продолжаем сборку...');
+        } else {
+            $this->line('  ✅ Зависимости установлены');
+        }
+
+        $this->line('  🔨 Сборка админ-панели (vite build)...');
+        $buildProcess = Process::path($rootPath)
+            ->timeout(600)
+            ->run('npm run build');
+
+        if (!$buildProcess->successful()) {
+            $err = $buildProcess->errorOutput() ?: $buildProcess->output();
+            $lines = array_slice(explode("\n", $err), -15);
+            $this->error('  ❌ Ошибка сборки админ-панели:');
+            $this->line('  ' . implode("\n  ", $lines));
+            throw new \Exception('Ошибка сборки админ-панели (Vue). Проверьте вывод выше.');
+        }
+
+        $this->info('  ✅ Админ-панель собрана (public/build)');
+        $this->newLine();
+    }
+
+    /**
+     * Сборка Mini App (React): frontend/ → public/miniapp
      */
     protected function buildFrontend(bool $dryRun): void
     {
-        $this->info('📦 Шаг 1: Сборка фронтенда...');
+        $this->info('📦 Шаг 1b: Сборка Mini App (React)...');
 
         $frontendPath = base_path('frontend');
         
@@ -327,10 +379,10 @@ class Deploy extends Command
             $lines = explode("\n", $errorMessage);
             $lastLines = array_slice($lines, -20); // Последние 20 строк
             
-            $this->error('  ❌ Ошибка сборки фронтенда:');
+            $this->error('  ❌ Ошибка сборки Mini App (React):');
             $this->line('  ' . implode("\n  ", $lastLines));
             
-            throw new \Exception("Ошибка сборки фронтенда. Проверьте вывод выше для деталей.");
+            throw new \Exception("Ошибка сборки Mini App. Проверьте вывод выше для деталей.");
         }
         
         $this->line('  ✅ Сборка завершена');
@@ -359,7 +411,7 @@ class Deploy extends Command
         // Копируем все файлы из dist в public/miniapp
         $this->copyDirectory($buildDir, $targetDir);
 
-        $this->info('  ✅ Сборка завершена успешно');
+        $this->info('  ✅ Mini App собрана успешно');
         $this->info("  📁 Файлы скопированы в: {$targetDir}");
         $this->newLine();
     }

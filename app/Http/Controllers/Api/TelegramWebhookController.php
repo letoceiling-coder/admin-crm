@@ -93,5 +93,8 @@ class TelegramWebhookController extends Controller
         } else {
             $this->telegram->sendMessage($token, $chatId, $welcomeText, ['reply_markup' => json_encode($replyMarkup)]);
         }
+
+        // Постоянная кнопка «Открыть приложение» для этого чата (как в express)
+        $this->telegram->setChatMenuButton($token, $miniAppUrl, 'Открыть приложение', $chatId);
     }
 }
