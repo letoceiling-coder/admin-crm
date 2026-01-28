@@ -97,7 +97,13 @@ class PaymentMethodSettingsController extends Controller
             }
             
             $validated = $request->validated();
-            
+            // Явно берём доступность из запроса, чтобы false и отсутствующие ключи всегда сохранялись
+            $validated['available_for_delivery'] = $request->boolean('available_for_delivery');
+            $validated['available_for_pickup'] = $request->boolean('available_for_pickup');
+            $validated['is_enabled'] = $request->boolean('is_enabled');
+            $validated['is_default'] = $request->boolean('is_default');
+            $validated['show_notification'] = $request->boolean('show_notification');
+
             // Получаем или создаем настройки уровня магазина (user_id = null), чтобы фронт чекаута видел те же данные
             $setting = PaymentMethodSetting::whereNull('user_id')
                 ->where('shop_id', $shopId)
