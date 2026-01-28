@@ -136,17 +136,14 @@ class PaymentMethodSetting extends Model
         // Если нет настроек, создаем по умолчанию
         $defaultMethods = [
             self::CODE_CASH => [
-                'name' => 'Наличные',
-                'description' => 'Оплата наличными при получении',
                 'is_enabled' => true,
                 'available_for_delivery' => true,
                 'available_for_pickup' => true,
                 'sort_order' => 2,
                 'discount_type' => self::DISCOUNT_TYPE_NONE,
+                'is_default' => true, // Наличные по умолчанию
             ],
             self::CODE_YOOKASSA => [
-                'name' => 'ЮКасса',
-                'description' => 'Оплата картой через ЮКассу',
                 'is_enabled' => true,
                 'available_for_delivery' => true,
                 'available_for_pickup' => false,
@@ -156,21 +153,85 @@ class PaymentMethodSetting extends Model
                 'min_cart_amount' => 2000.0,
                 'show_notification' => true,
                 'notification_text' => 'При оплате через ЮКассу вы получите скидку {discount_percent}% ({discount} ₽). Итого к оплате: {final_amount} ₽',
+                'is_default' => false,
             ],
         ];
         
         $result = collect();
+        $hasDefault = false;
+        
         foreach ($defaultMethods as $code => $defaults) {
             $setting = $settings->firstWhere('payment_method_code', $code);
             if (!$setting) {
-                $setting = static::create(array_merge([
-                    'user_id' => $userId,
-                    'shop_id' => $shopId,
-                    'payment_method_code' => $code,
-                    'is_default' => $code === self::CODE_CASH, // Наличные по умолчанию
-                ], $defaults));
+                try {
+                    // Если уже есть способ оплаты по умолчанию, не устанавливаем is_default для текущего
+                    if (isset($defaults['is_default']) && $defaults['is_default'] && $hasDefault) {
+                        $defaults['is_default'] = false;
+                    }
+                    
+                    $setting = static::create(array_merge([
+                        'user_id' => $userId,
+                        'shop_id' => $shopId,
+                        'payment_method_code' => $code,
+                    ], $defaults));
+                    
+                    if ($setting->is_default) {
+                        $hasDefault = true;
+                    }
+                } catch (\Exception $e) {
+                    // Если возникла ошибка (например, дубликат), пытаемся найти существующую запись
+                    $setting = static::where(function ($query) use ($userId) {
+                        if ($userId !== null) {
+                            $query->where('user_id', $userId);
+                        } else {
+                            $query->whereNull('user_id');
+                        }
+                    })
+                        ->where(function ($query) use ($shopId) {
+                            if ($shopId !== null) {
+                                $query->where('shop_id', $shopId);
+                            } else {
+                                $query->whereNull('shop_id');
+                            }
+                        })
+                        ->where('payment_method_code', $code)
+                        ->first();
+                    
+                    if (!$setting) {
+                        // Если все еще не найдено, пропускаем этот способ оплаты
+                        Log::error('Error creating payment method setting', [
+                            'code' => $code,
+                            'user_id' => $userId,
+                            'shop_id' => $shopId,
+                            'error' => $e->getMessage(),
+                        ]);
+                        continue;
+                    }
+                }
+            } else {
+                if ($setting->is_default) {
+                    $hasDefault = true;
+                }
             }
             $result->push($setting);
+        }
+        
+        // Убеждаемся, что только один способ оплаты помечен как default
+        $defaultCount = $result->where('is_default', true)->count();
+        if ($defaultCount > 1) {
+            // Оставляем только первый как default
+            $firstDefault = $result->where('is_default', true)->first();
+            $result->each(function ($item) use ($firstDefault) {
+                if ($item->id !== $firstDefault->id && $item->is_default) {
+                    $item->is_default = false;
+                    $item->save();
+                }
+            });
+        } elseif ($defaultCount === 0 && $result->count() > 0) {
+            // Если нет default, устанавливаем первый
+            $first = $result->first();
+            $first->is_default = true;
+            $first->save();
         }
         
         return $result->sortBy('sort_order')->values();
@@ -261,5 +322,18 @@ class PaymentMethodSetting extends Model
         ];
         
         return $names[$this->payment_method_code] ?? $this->payment_method_code;
+    }
+
+    /**
+     * Получить описание способа оплаты
+     */
+    public function getDescription(): ?string
+    {
+        $descriptions = [
+            self::CODE_CASH => 'Оплата наличными при получении',
+            self::CODE_YOOKASSA => 'Оплата картой через ЮКассу',
+        ];
+        
+        return $descriptions[$this->payment_method_code] ?? null;
     }
 }

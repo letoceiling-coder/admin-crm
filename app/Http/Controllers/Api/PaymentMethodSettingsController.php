@@ -33,16 +33,32 @@ class PaymentMethodSettingsController extends Controller
             return response()->json(['message' => 'Доступ к магазину запрещен'], 403);
         }
         
-        $settings = PaymentMethodSetting::getSettings($user->id, $shopId);
-        
-        return response()->json([
-            'data' => $settings->map(function ($setting) {
-                $data = $setting->toArray();
-                // Добавляем название способа оплаты
-                $data['name'] = $setting->getName();
-                return $data;
-            }),
-        ]);
+        try {
+            $settings = PaymentMethodSetting::getSettings($user->id, $shopId);
+            
+            return response()->json([
+                'data' => $settings->map(function ($setting) {
+                    $data = $setting->toArray();
+                    // Добавляем название способа оплаты
+                    $data['name'] = $setting->getName();
+                    // Добавляем описание
+                    $data['description'] = $setting->getDescription();
+                    return $data;
+                }),
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error loading payment method settings', [
+                'user_id' => $user->id,
+                'shop_id' => $shopId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            
+            return response()->json([
+                'message' => 'Ошибка при загрузке способов оплаты',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**
