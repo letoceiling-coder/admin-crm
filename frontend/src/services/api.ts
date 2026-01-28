@@ -94,11 +94,11 @@ export const categoryApi = {
   },
 };
 
-// Product API
+// Product API (публичные эндпоинты для Mini App: /shops/{shopId}/products, /products/{id})
 export const productApi = {
   getAll: async (shopId: number, categoryId?: number): Promise<Product[]> => {
-    let url = `/admin/products?shop_id=${shopId}&is_active=1&per_page=100`;
-    if (categoryId) {
+    let url = `/shops/${shopId}/products?per_page=100`;
+    if (categoryId !== undefined && categoryId !== null) {
       url += `&category_id=${categoryId}`;
     }
     const response = await fetchApi<PaginatedResponse<Product>>(url);
@@ -106,12 +106,12 @@ export const productApi = {
   },
 
   getById: async (id: number): Promise<Product> => {
-    return fetchApi<Product>(`/admin/products/${id}`);
+    return fetchApi<Product>(`/products/${id}`);
   },
 
   search: async (shopId: number, query: string): Promise<Product[]> => {
     const response = await fetchApi<PaginatedResponse<Product>>(
-      `/admin/products?shop_id=${shopId}&search=${encodeURIComponent(query)}&is_active=1&per_page=100`
+      `/shops/${shopId}/products?search=${encodeURIComponent(query)}&per_page=100`
     );
     return response.data || [];
   },

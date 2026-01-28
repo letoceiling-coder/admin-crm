@@ -86,12 +86,23 @@ export function CatalogPage() {
     enabled: !!shopId,
   });
 
-  // Загружаем товары
-  const { data: products = [], isLoading: productsLoading } = useQuery<Product[]>({
+  // Загружаем товары (публичный API /shops/{shopId}/products для Mini App)
+  const {
+    data: products = [],
+    isLoading: productsLoading,
+    isError: productsError,
+    error: productsErrorDetail,
+  } = useQuery<Product[]>({
     queryKey: ['products', shopId, activeCategory],
     queryFn: () => shopId ? productApi.getAll(shopId, activeCategory || undefined) : [],
     enabled: !!shopId,
   });
+
+  useEffect(() => {
+    if (productsError && productsErrorDetail) {
+      console.error('[CatalogPage] Ошибка загрузки товаров:', productsErrorDetail);
+    }
+  }, [productsError, productsErrorDetail]);
 
   // Получаем shopId из shopSlug
   useEffect(() => {
@@ -135,6 +146,26 @@ export function CatalogPage() {
         <div className="text-center">
           <div className={cn('animate-spin rounded-full h-12 w-12 border-b-2 mx-auto', colors.border)}></div>
           <p className="mt-4 text-gray-600 dark:text-gray-400">Загрузка...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (productsError) {
+    const errorMessage = productsErrorDetail instanceof Error ? productsErrorDetail.message : 'Не удалось загрузить товары';
+    return (
+      <div className={cn(`min-h-screen bg-gradient-to-b ${colors.bgGradient} pb-28`)}>
+        <MiniAppHeader title="Каталог" />
+        <div className="flex flex-col items-center justify-center px-6 py-12 text-center">
+          <p className={cn('text-lg font-medium', colors.titleGradient, 'bg-clip-text text-transparent')}>Не удалось загрузить товары</p>
+          <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">{errorMessage}</p>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className={cn('mt-4 px-4 py-2 rounded-lg font-medium bg-gradient-to-r', colors.buttonGradient, 'text-white')}
+          >
+            Обновить
+          </button>
         </div>
       </div>
     );

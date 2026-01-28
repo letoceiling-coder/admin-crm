@@ -7,6 +7,7 @@ use App\Models\Product;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class ProductController extends Controller
@@ -45,6 +46,12 @@ class ProductController extends Controller
         // Пагинация
         $perPage = (int) $request->get('per_page', 100);
         $products = $query->paginate($perPage);
+
+        Log::info('Mini App: getByShop products', [
+            'shop_id' => $shopId,
+            'total' => $products->total(),
+            'category_id' => $request->get('category_id'),
+        ]);
 
         return response()->json($products);
     }
