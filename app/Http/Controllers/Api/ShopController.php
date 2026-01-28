@@ -57,6 +57,9 @@ class ShopController extends Controller
                 'inn' => $request->inn,
                 'ogrn' => $request->ogrn,
                 'telegram_bot_token' => $request->telegram_bot_token,
+                'telegram_bot_name' => $request->telegram_bot_name,
+                'welcome_message' => $request->welcome_message,
+                'welcome_photo_media_id' => $request->welcome_photo_media_id,
             ]);
 
             // Сохраняем адреса
@@ -85,7 +88,7 @@ class ShopController extends Controller
 
             DB::commit();
 
-            $shop->load(['admin', 'addresses', 'phones', 'customFields']);
+            $shop->load(['admin', 'addresses', 'phones', 'customFields', 'welcomePhoto']);
 
             return response()->json($shop, 201);
         } catch (\Exception $e) {
@@ -124,7 +127,7 @@ class ShopController extends Controller
             return response()->json(['message' => 'Доступ запрещен'], 403);
         }
 
-        $shop->load(['admin', 'addresses', 'phones', 'customFields']);
+        $shop->load(['admin', 'addresses', 'phones', 'customFields', 'welcomePhoto']);
 
         return response()->json($shop);
     }
@@ -149,7 +152,26 @@ class ShopController extends Controller
                 'inn' => $request->inn,
                 'ogrn' => $request->ogrn,
                 'telegram_bot_token' => $request->telegram_bot_token,
+                'telegram_bot_name' => $request->telegram_bot_name,
+                'welcome_message' => $request->welcome_message,
+                'welcome_photo_media_id' => $request->welcome_photo_media_id,
             ]);
+
+            // Автоматическая установка webhook при сохранении токена (официальный API: setWebhook)
+            if ($shop->telegram_bot_token) {
+                $telegramService = new TelegramBotService();
+                if ($telegramService->validateToken($shop->telegram_bot_token)) {
+                    $webhookUrl = rtrim(config('app.url', 'https://crm.neeklo.ru'), '/') . '/api/telegram/webhook/' . $shop->id;
+                    $setResult = $telegramService->setWebhook($shop->telegram_bot_token, $webhookUrl);
+                    if ($setResult['success'] && !$shop->telegram_bot_name) {
+                        $me = $telegramService->getMe($shop->telegram_bot_token);
+                        $bot = $me['bot'] ?? null;
+                        if ($bot) {
+                            $shop->update(['telegram_bot_name' => trim(($bot['first_name'] ?? '') . ' ' . ($bot['last_name'] ?? '')) . ' (@' . ($bot['username'] ?? '') . ')']);
+                        }
+                    }
+                }
+            }
 
             // Удаляем старые адреса и создаем новые
             $shop->addresses()->delete();
@@ -180,7 +202,7 @@ class ShopController extends Controller
 
             DB::commit();
 
-            $shop->load(['admin', 'addresses', 'phones', 'customFields']);
+            $shop->load(['admin', 'addresses', 'phones', 'customFields', 'welcomePhoto']);
 
             return response()->json($shop);
         } catch (\Exception $e) {
@@ -207,18 +229,18 @@ class ShopController extends Controller
     }
 
     /**
-     * Проверить токен телеграм-бота
+     * Проверить токен телеграм-бота (официальный API: getMe).
+     * Можно передать telegram_bot_token в теле запроса для проверки до сохранения.
      */
     public function validateBotToken(Request $request, Shop $shop): JsonResponse
     {
         $user = $request->user();
-        
-        // Проверка доступа
         if (!$user->hasAccessToShop($shop->id)) {
             return response()->json(['message' => 'Доступ запрещен'], 403);
         }
 
-        if (!$shop->telegram_bot_token) {
+        $token = $request->input('telegram_bot_token') ?: $shop->telegram_bot_token;
+        if (!$token || !is_string($token)) {
             return response()->json([
                 'valid' => false,
                 'message' => 'Токен бота не установлен',
@@ -226,13 +248,18 @@ class ShopController extends Controller
         }
 
         $telegramService = new TelegramBotService();
-        $result = $telegramService->validateToken($shop->telegram_bot_token);
+        $result = $telegramService->validateToken($token);
 
         if ($result) {
-            $botInfo = $telegramService->getMe($shop->telegram_bot_token);
+            $botInfo = $telegramService->getMe($token);
+            $bot = $botInfo['bot'] ?? null;
+            $botName = $bot
+                ? trim(($bot['first_name'] ?? '') . ' ' . ($bot['last_name'] ?? '')) . ' (@' . ($bot['username'] ?? '') . ')'
+                : null;
             return response()->json([
                 'valid' => true,
-                'bot' => $botInfo['bot'] ?? null,
+                'bot' => $bot,
+                'bot_name' => $botName,
                 'message' => 'Токен валиден',
             ]);
         }
@@ -241,6 +268,53 @@ class ShopController extends Controller
             'valid' => false,
             'message' => 'Токен невалиден',
         ]);
+    }
+
+    /**
+     * Проверить токен бота без привязки к магазину (для формы создания).
+     */
+    public function validateBotTokenStandalone(Request $request): JsonResponse
+    {
+        $request->validate(['telegram_bot_token' => ['required', 'string', 'max:255']]);
+        $token = $request->input('telegram_bot_token');
+        $telegramService = new TelegramBotService();
+        $result = $telegramService->validateToken($token);
+        if ($result) {
+            $botInfo = $telegramService->getMe($token);
+            $bot = $botInfo['bot'] ?? null;
+            $botName = $bot
+                ? trim(($bot['first_name'] ?? '') . ' ' . ($bot['last_name'] ?? '')) . ' (@' . ($bot['username'] ?? '') . ')'
+                : null;
+            return response()->json([
+                'valid' => true,
+                'bot' => $bot,
+                'bot_name' => $botName,
+                'message' => 'Токен валиден',
+            ]);
+        }
+        return response()->json(['valid' => false, 'message' => 'Токен невалиден']);
+    }
+
+    /**
+     * Получить информацию о webhook (официальный API: getWebhookInfo).
+     */
+    public function getWebhookInfo(Request $request, Shop $shop): JsonResponse
+    {
+        $user = $request->user();
+        if (!$user->hasAccessToShop($shop->id)) {
+            return response()->json(['message' => 'Доступ запрещен'], 403);
+        }
+
+        if (!$shop->telegram_bot_token) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Токен бота не установлен',
+            ], 400);
+        }
+
+        $telegramService = new TelegramBotService();
+        $result = $telegramService->getWebhookInfo($shop->telegram_bot_token);
+        return response()->json($result);
     }
 
     /**

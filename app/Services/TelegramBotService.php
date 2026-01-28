@@ -229,6 +229,76 @@ class TelegramBotService
     }
 
     /**
+     * Отправить фото в Telegram (официальный API: sendPhoto)
+     * https://core.telegram.org/bots/api#sendphoto
+     *
+     * @param string $token Токен бота
+     * @param int|string $chatId ID чата
+     * @param string $photo URL фото или file_id
+     * @param string|null $caption Подпись к фото
+     * @param array $replyMarkup reply_markup (InlineKeyboardMarkup и т.д.)
+     * @return array{success: bool, message_id?: int, error?: string}
+     */
+    public function sendPhoto(
+        string $token,
+        int|string $chatId,
+        string $photo,
+        ?string $caption = null,
+        array $replyMarkup = []
+    ): array {
+        $url = $this->baseUrl . $token . '/sendPhoto';
+
+        $payload = [
+            'chat_id' => $chatId,
+            'photo' => $photo,
+        ];
+        if ($caption !== null && $caption !== '') {
+            $payload['caption'] = $caption;
+        }
+        if (!empty($replyMarkup)) {
+            $payload['reply_markup'] = json_encode($replyMarkup);
+        }
+
+        try {
+            $response = Http::timeout(15)->asJson()->post($url, $payload);
+
+            if (!$response->successful()) {
+                $error = $response->json('description', 'Unknown error');
+                Log::warning('TelegramBotService: ошибка отправки фото', [
+                    'chat_id' => $chatId,
+                    'error' => $error,
+                ]);
+                return ['success' => false, 'error' => $error];
+            }
+
+            $data = $response->json('result');
+            return ['success' => true, 'message_id' => $data['message_id'] ?? null];
+        } catch (\Throwable $e) {
+            Log::error('TelegramBotService: исключение при отправке фото', ['error' => $e->getMessage()]);
+            return ['success' => false, 'error' => $e->getMessage()];
+        }
+    }
+
+    /**
+     * Собрать InlineKeyboardMarkup с одной кнопкой Web App (официальный API)
+     * https://core.telegram.org/bots/api#inlinekeyboardmarkup
+     *
+     * @param string $text Текст кнопки
+     * @param string $webAppUrl URL Mini App (HTTPS)
+     * @return array{inline_keyboard: array}
+     */
+    public static function inlineKeyboardWebApp(string $text, string $webAppUrl): array
+    {
+        return [
+            'inline_keyboard' => [
+                [
+                    ['text' => $text, 'web_app' => ['url' => $webAppUrl]],
+                ],
+            ],
+        ];
+    }
+
+    /**
      * Отправить документ в Telegram
      *
      * @param string $token Токен бота

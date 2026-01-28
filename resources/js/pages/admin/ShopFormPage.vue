@@ -94,29 +94,39 @@
             <label for="telegram_bot_token" class="block text-sm font-medium text-gray-700 mb-1">
               Токен телеграм-бота
             </label>
-            <div class="flex gap-2">
+            <div class="flex gap-2 flex-wrap">
               <input
                 id="telegram_bot_token"
                 v-model="form.telegram_bot_token"
                 type="text"
-                class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                class="flex-1 min-w-[200px] px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 :class="{ 'border-green-500': botTokenValid, 'border-red-500': botTokenValid === false }"
                 placeholder="Введите токен телеграм-бота"
               />
               <button
-                v-if="isEditMode && form.telegram_bot_token"
+                v-if="form.telegram_bot_token"
                 type="button"
                 @click="validateToken"
                 :disabled="validatingToken"
                 class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 <div v-if="validatingToken" class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                <span v-else>Проверить</span>
+                <span v-else>Проверить токен</span>
+              </button>
+              <button
+                v-if="isEditMode && form.telegram_bot_token"
+                type="button"
+                @click="checkWebhook"
+                :disabled="loadingWebhook"
+                class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                <div v-if="loadingWebhook" class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                <span v-else>Тест webhook</span>
               </button>
             </div>
-            <div class="mt-2 flex items-center gap-4">
+            <div class="mt-2 flex items-center gap-4 flex-wrap">
               <p class="text-xs text-gray-500">
-                Токен можно получить у @BotFather в Telegram
+                Токен можно получить у @BotFather в Telegram. При сохранении webhook устанавливается автоматически.
               </p>
               <span v-if="botTokenValid === true" class="text-xs text-green-600 flex items-center gap-1">
                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -131,10 +141,48 @@
                 Токен невалиден
               </span>
             </div>
-            <div v-if="botInfo" class="mt-2 p-3 bg-gray-50 rounded-lg">
-              <p class="text-xs font-medium text-gray-700 mb-1">Информация о боте:</p>
-              <p class="text-xs text-gray-600">Имя: {{ botInfo.bot?.first_name }} {{ botInfo.bot?.last_name || '' }}</p>
-              <p class="text-xs text-gray-600">Username: @{{ botInfo.bot?.username }}</p>
+            <div v-if="botInfo || form.telegram_bot_name" class="mt-2 p-3 bg-gray-50 rounded-lg">
+              <p class="text-xs font-medium text-gray-700 mb-1">Наименование бота:</p>
+              <p class="text-sm text-gray-900">
+                {{ (botInfo && botInfo.bot_name) ? botInfo.bot_name : (form.telegram_bot_name || displayBotName) }}
+              </p>
+              <p v-if="botInfo && botInfo.bot" class="text-xs text-gray-600 mt-1">
+                @{{ botInfo.bot?.username }}
+              </p>
+            </div>
+            <div v-if="webhookInfo" class="mt-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
+              <p class="text-xs font-medium text-gray-700 mb-1">Webhook:</p>
+              <p class="text-xs text-gray-600 break-all">{{ webhookInfo.url || 'Не установлен' }}</p>
+              <p v-if="webhookInfo.error" class="text-xs text-red-600 mt-1">{{ webhookInfo.error }}</p>
+            </div>
+          </div>
+
+          <!-- Приветственное сообщение бота (/start) -->
+          <div class="space-y-2 pt-4 border-t border-gray-200">
+            <h3 class="text-sm font-medium text-gray-700">Приветственное сообщение (команда /start)</h3>
+            <label for="welcome_message" class="block text-sm text-gray-600 mb-1">
+              Текст приветствия (под кнопкой — инлайн «Открыть каталог» → Mini App)
+            </label>
+            <textarea
+              id="welcome_message"
+              v-model="form.welcome_message"
+              rows="3"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Добро пожаловать! Нажмите кнопку ниже, чтобы открыть каталог."
+            ></textarea>
+            <div class="flex items-center gap-4">
+              <div>
+                <label for="welcome_photo_media_id" class="block text-sm text-gray-600 mb-1">Фото из медиа (ID)</label>
+                <input
+                  id="welcome_photo_media_id"
+                  v-model.number="form.welcome_photo_media_id"
+                  type="number"
+                  min="0"
+                  class="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="ID медиа"
+                />
+              </div>
+              <p class="text-xs text-gray-500 self-end pb-2">Оставьте пустым, если без фото. Mini App: https://crm.neeklo.ru/{{ form.slug || 'slug' }}</p>
             </div>
           </div>
         </div>
@@ -319,6 +367,10 @@ const form = ref({
   inn: '',
   ogrn: '',
   telegram_bot_token: '',
+  telegram_bot_name: '',
+  welcome_message: '',
+  welcome_photo_media_id: null,
+  slug: '',
   addresses: [],
   phones: [],
   custom_fields: [],
@@ -328,8 +380,16 @@ const errors = ref({});
 const loading = ref(false);
 const submitting = ref(false);
 const validatingToken = ref(false);
+const loadingWebhook = ref(false);
 const botTokenValid = ref(null);
 const botInfo = ref(null);
+const webhookInfo = ref(null);
+
+const displayBotName = computed(() => {
+  if (!botInfo.value?.bot) return '';
+  const b = botInfo.value.bot;
+  return [b.first_name, b.last_name].filter(Boolean).join(' ') + (b.username ? ' (@' + b.username + ')' : '');
+});
 
 const addAddress = () => {
   form.value.addresses.push('');
@@ -359,23 +419,51 @@ const removeCustomField = (index) => {
 };
 
 const validateToken = async () => {
-  if (!form.value.telegram_bot_token || !isEditMode.value) return;
+  if (!form.value.telegram_bot_token) return;
 
   validatingToken.value = true;
   botTokenValid.value = null;
   botInfo.value = null;
+  webhookInfo.value = null;
 
   try {
-    const response = await apiClient.post(`/admin/shops/${route.params.id}/validate-bot-token`);
+    const url = isEditMode.value
+      ? `/admin/shops/${route.params.id}/validate-bot-token`
+      : '/admin/validate-bot-token';
+    const response = await apiClient.post(url, {
+      telegram_bot_token: form.value.telegram_bot_token,
+    });
     botTokenValid.value = response.data.valid;
-    if (response.data.valid && response.data.bot) {
-      botInfo.value = { bot: response.data.bot };
+    if (response.data.valid) {
+      botInfo.value = {
+        bot: response.data.bot,
+        bot_name: response.data.bot_name,
+      };
+      if (response.data.bot_name) form.value.telegram_bot_name = response.data.bot_name;
     }
   } catch (err) {
     botTokenValid.value = false;
     console.error('Error validating token:', err);
   } finally {
     validatingToken.value = false;
+  }
+};
+
+const checkWebhook = async () => {
+  if (!isEditMode.value || !form.value.telegram_bot_token) return;
+  loadingWebhook.value = true;
+  webhookInfo.value = null;
+  try {
+    const response = await apiClient.get(`/admin/shops/${route.params.id}/webhook-info`);
+    if (response.data.success && response.data.webhook) {
+      webhookInfo.value = { url: response.data.webhook.url || null };
+    } else {
+      webhookInfo.value = { url: null, error: response.data.error || 'Нет данных' };
+    }
+  } catch (err) {
+    webhookInfo.value = { url: null, error: err.response?.data?.message || 'Ошибка запроса' };
+  } finally {
+    loadingWebhook.value = false;
   }
 };
 
@@ -393,6 +481,10 @@ const fetchShop = async () => {
       inn: shop.inn || '',
       ogrn: shop.ogrn || '',
       telegram_bot_token: shop.telegram_bot_token || '',
+      telegram_bot_name: shop.telegram_bot_name || '',
+      welcome_message: shop.welcome_message || '',
+      welcome_photo_media_id: shop.welcome_photo_media_id ?? null,
+      slug: shop.slug || '',
       addresses: shop.addresses?.map(a => a.address) || [],
       phones: shop.phones?.map(p => p.phone) || [],
       custom_fields: shop.custom_fields?.map(f => ({
@@ -400,10 +492,10 @@ const fetchShop = async () => {
         field_value: f.field_value || '',
       })) || [],
     };
-    
-    // Сбрасываем состояние проверки токена при загрузке
+
     botTokenValid.value = null;
     botInfo.value = null;
+    webhookInfo.value = null;
   } catch (err) {
     console.error('Error fetching shop:', err);
     router.push('/admin/shops');
@@ -423,6 +515,9 @@ const submitForm = async () => {
       inn: form.value.inn || null,
       ogrn: form.value.ogrn || null,
       telegram_bot_token: form.value.telegram_bot_token || null,
+      telegram_bot_name: form.value.telegram_bot_name || null,
+      welcome_message: form.value.welcome_message || null,
+      welcome_photo_media_id: form.value.welcome_photo_media_id || null,
       addresses: form.value.addresses.filter(a => a.trim() !== ''),
       phones: form.value.phones.filter(p => p.trim() !== ''),
       custom_fields: form.value.custom_fields

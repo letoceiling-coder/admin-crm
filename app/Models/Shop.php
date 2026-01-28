@@ -21,6 +21,9 @@ class Shop extends Model
         'inn',
         'ogrn',
         'telegram_bot_token',
+        'telegram_bot_name',
+        'welcome_message',
+        'welcome_photo_media_id',
     ];
 
     protected static function boot()
@@ -149,5 +152,13 @@ class Shop extends Model
     public function payments(): HasMany
     {
         return $this->hasMany(Payment::class);
+    }
+
+    /**
+     * Медиа для приветственного фото бота
+     */
+    public function welcomePhoto(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(Media::class, 'welcome_photo_media_id');
     }
 }

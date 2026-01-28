@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\SettingsController;
 use App\Http\Controllers\Api\DeliverySettingsController;
 use App\Http\Controllers\Api\PaymentMethodSettingsController;
+use App\Http\Controllers\Api\TelegramWebhookController;
 
 /*
 |--------------------------------------------------------------------------
@@ -37,6 +38,9 @@ Route::prefix('auth')->group(function () {
     Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
     Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 });
+
+// Webhook для Telegram-ботов (публичный, без auth — Telegram шлёт POST сюда)
+Route::post('/telegram/webhook/{shop}', [TelegramWebhookController::class, 'handle']);
 
 // Публичные роуты для Telegram Mini App (доступны всем)
 Route::get('/shops/slug/{slug}', [ShopController::class, 'getBySlug']);
@@ -70,10 +74,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/subscription', [SubscriptionController::class, 'index']);
         
         // Управление магазинами
+        Route::post('validate-bot-token', [ShopController::class, 'validateBotTokenStandalone']);
         Route::apiResource('shops', ShopController::class);
         Route::prefix('shops/{shop}')->group(function () {
             Route::post('/validate-bot-token', [ShopController::class, 'validateBotToken']);
             Route::get('/bot-info', [ShopController::class, 'getBotInfo']);
+            Route::get('/webhook-info', [ShopController::class, 'getWebhookInfo']);
             Route::post('/send-test-message', [ShopController::class, 'sendTestMessage']);
         });
 
