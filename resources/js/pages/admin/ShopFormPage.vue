@@ -44,6 +44,24 @@
             <p v-if="errors.name" class="mt-1 text-sm text-red-600">{{ errors.name }}</p>
           </div>
 
+          <div>
+            <label for="template" class="block text-sm font-medium text-gray-700 mb-1">
+              Шаблон дизайна
+            </label>
+            <select
+              id="template"
+              v-model="form.template"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="amber">Янтарный (по умолчанию)</option>
+              <option value="blue">Синий</option>
+              <option value="green">Зеленый</option>
+              <option value="purple">Фиолетовый</option>
+              <option value="monochrome">Черно-белый</option>
+            </select>
+            <p class="mt-1 text-xs text-gray-500">Выберите цветовую схему для фронтенда магазина</p>
+          </div>
+
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label for="inn" class="block text-sm font-medium text-gray-700 mb-1">
@@ -297,6 +315,7 @@ const isEditMode = computed(() => !!route.params.id);
 
 const form = ref({
   name: '',
+  template: 'amber',
   inn: '',
   ogrn: '',
   telegram_bot_token: '',
@@ -399,6 +418,7 @@ const submitForm = async () => {
   try {
     const data = {
       name: form.value.name,
+      template: form.value.template || 'amber',
       inn: form.value.inn || null,
       ogrn: form.value.ogrn || null,
       telegram_bot_token: form.value.telegram_bot_token || null,

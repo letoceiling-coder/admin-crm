@@ -67,6 +67,8 @@ export interface Media {
 export interface Shop {
   id: number;
   name: string;
+  slug?: string;
+  template?: string;
   inn?: string;
   ogrn?: string;
   telegram_bot_token?: string;

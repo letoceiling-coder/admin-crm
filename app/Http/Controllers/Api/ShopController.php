@@ -52,6 +52,7 @@ class ShopController extends Controller
         try {
             $shop = Shop::create([
                 'name' => $request->name,
+                'template' => $request->template ?? 'amber',
                 'admin_id' => $user->id,
                 'inn' => $request->inn,
                 'ogrn' => $request->ogrn,
@@ -144,6 +145,7 @@ class ShopController extends Controller
         try {
             $shop->update([
                 'name' => $request->name,
+                'template' => $request->template ?? 'amber',
                 'inn' => $request->inn,
                 'ogrn' => $request->ogrn,
                 'telegram_bot_token' => $request->telegram_bot_token,

@@ -8,14 +8,17 @@ import { ProductCard } from '@/components/ProductCard';
 import { DeliveryModeToggle } from '@/components/DeliveryModeToggle';
 import { DeliveryProgressIndicator } from '@/components/DeliveryProgressIndicator';
 import { useCartStore } from '@/store/cartStore';
+import { useTheme } from '@/contexts/ThemeContext';
 import { ShoppingCart } from 'lucide-react';
 import type { Product, Category } from '@/types';
 import { categoryApi, productApi, shopApi, deliverySettingsApi } from '@/services/api';
 import { useQuery } from '@tanstack/react-query';
+import { cn } from '@/lib/utils';
 
 export function CatalogPage() {
   const navigate = useNavigate();
   const { shopSlug } = useParams<{ shopSlug: string }>();
+  const { colors } = useTheme();
   const [activeCategory, setActiveCategory] = useState<number | null>(null);
   const [shopId, setShopId] = useState<number | null>(null);
   const totalItems = useCartStore((state) => state.getTotalItems());
@@ -138,14 +141,14 @@ export function CatalogPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-amber-50 via-orange-50 to-red-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 pb-28">
+    <div className={cn(`min-h-screen bg-gradient-to-b ${colors.bgGradient.light} dark:${colors.bgGradient.dark} pb-28`)}>
       <MiniAppHeader title="Каталог" />
 
       {/* Sticky Menu: Delivery Mode Toggle + Category Tabs */}
       <motion.div
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        className="sticky top-16 z-30 bg-white/95 dark:bg-gray-950/95 backdrop-blur-xl border-b-2 border-amber-200 dark:border-amber-900"
+        className={cn(`sticky top-16 z-30 bg-white/95 dark:bg-gray-950/95 backdrop-blur-xl border-b-2 ${colors.border.light} dark:${colors.border.dark}`)}
       >
         {/* Delivery Mode Toggle */}
         <DeliveryModeToggle value={orderMode} onChange={setOrderMode} />

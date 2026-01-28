@@ -23,6 +23,7 @@ class ShopStoreRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255', 'unique:shops,name'],
+            'template' => ['nullable', 'string', 'in:amber,blue,green,purple,monochrome'],
             'inn' => ['nullable', 'string', 'max:20'],
             'ogrn' => ['nullable', 'string', 'max:20'],
             'telegram_bot_token' => ['nullable', 'string', 'max:255'],

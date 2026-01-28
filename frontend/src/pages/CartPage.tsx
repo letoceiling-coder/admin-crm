@@ -5,12 +5,15 @@ import { MiniAppHeader } from '@/components/MiniAppHeader';
 import { BottomNavigation } from '@/components/BottomNavigation';
 import { ProductCard } from '@/components/ProductCard';
 import { useCartStore } from '@/store/cartStore';
+import { useTheme } from '@/contexts/ThemeContext';
 import { shopApi, deliverySettingsApi } from '@/services/api';
 import { Trash2, ShoppingBag } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 export function CartPage() {
   const navigate = useNavigate();
   const { shopSlug } = useParams<{ shopSlug: string }>();
+  const { colors } = useTheme();
   const { items, clearCart, getTotalItems, getTotalAmount, shopId } = useCartStore();
   const totalItems = getTotalItems();
   const totalAmount = getTotalAmount();
@@ -90,7 +93,7 @@ export function CartPage() {
 
   if (totalItems === 0) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-amber-50 via-orange-50 to-red-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 pb-20">
+      <div className={cn(`min-h-screen bg-gradient-to-b ${colors.bgGradient.light} dark:${colors.bgGradient.dark} pb-20`)}>
         <MiniAppHeader title="Корзина" showBack={true} showSearch={false} />
         <div className="flex flex-col items-center justify-center px-4 py-20">
           <ShoppingBag className="h-24 w-24 text-gray-300 dark:text-gray-700 mb-4" />
@@ -102,7 +105,7 @@ export function CartPage() {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => navigate(`/${shopSlug}`)}
-            className="px-6 py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-600 text-white font-bold shadow-lg"
+            className={cn(`px-6 py-3 rounded-2xl bg-gradient-to-r ${colors.buttonGradient.light} dark:${colors.buttonGradient.dark} text-white font-bold shadow-lg`)}
           >
             Перейти в каталог
           </motion.button>
@@ -154,7 +157,7 @@ export function CartPage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white dark:bg-gray-900 rounded-3xl p-6 mb-4 shadow-2xl border-2 border-amber-200 dark:border-amber-900"
+          className={cn(`${colors.cardBg.light} dark:${colors.cardBg.dark} rounded-3xl p-6 mb-4 shadow-2xl border-2 ${colors.border.light} dark:${colors.border.dark}`)}
         >
           {/* Предупреждение о минимальной сумме заказа */}
           {!isMinOrderMet() && (
@@ -179,7 +182,7 @@ export function CartPage() {
             whileTap={{ scale: 0.98 }}
             onClick={handleCheckout}
             disabled={!isMinOrderMet()}
-            className="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-600 text-white font-black text-lg shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed"
+            className={cn(`w-full py-4 rounded-2xl bg-gradient-to-r ${colors.buttonGradient.light} dark:${colors.buttonGradient.dark} text-white font-black text-lg shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed`)}
           >
             {!isMinOrderMet() ? `Минимум ${minDeliveryOrderTotal?.toLocaleString('ru-RU')} ₽` : 'Оформить заказ'}
           </motion.button>

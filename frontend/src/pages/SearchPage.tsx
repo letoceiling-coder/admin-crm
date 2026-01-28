@@ -3,10 +3,12 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { MiniAppHeader } from '@/components/MiniAppHeader';
 import { BottomNavigation } from '@/components/BottomNavigation';
 import { ProductCard } from '@/components/ProductCard';
+import { useTheme } from '@/contexts/ThemeContext';
 import type { Product } from '@/types';
 import { productApi, shopApi } from '@/services/api';
 import { useQuery } from '@tanstack/react-query';
 import { Search, X, Loader2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface SearchResult extends Product {
   priority: number;
@@ -16,6 +18,7 @@ interface SearchResult extends Product {
 export function SearchPage() {
   const navigate = useNavigate();
   const { shopSlug } = useParams<{ shopSlug: string }>();
+  const { colors } = useTheme();
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [shopId, setShopId] = useState<number | null>(null);
@@ -133,18 +136,18 @@ export function SearchPage() {
 
   if (!shopSlug) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-amber-50 via-orange-50 to-red-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 flex items-center justify-center">
+      <div className={cn(`min-h-screen bg-gradient-to-b ${colors.bgGradient.light} dark:${colors.bgGradient.dark} flex items-center justify-center`)}>
         <p className="text-gray-600 dark:text-gray-400">Магазин не найден</p>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-b from-amber-50 via-orange-50 to-red-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 overflow-hidden pb-20">
+    <div className={cn(`flex flex-col min-h-screen bg-gradient-to-b ${colors.bgGradient.light} dark:${colors.bgGradient.dark} overflow-hidden pb-20`)}>
       <MiniAppHeader title="Поиск" showBack={true} showSearch={false} />
 
       {/* Search Input */}
-      <div className="px-4 pt-3 pb-2 border-b-2 border-amber-200 dark:border-amber-900 bg-white/80 dark:bg-gray-900/80">
+      <div className={cn(`px-4 pt-3 pb-2 border-b-2 ${colors.border.light} dark:${colors.border.dark} bg-white/80 dark:bg-gray-900/80`)}>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-amber-600 dark:text-amber-400" />
           <input
@@ -193,12 +196,12 @@ export function SearchPage() {
                     <button
                       key={product.id}
                       onClick={() => handleSuggestionClick(product.id)}
-                      className="w-full flex items-center justify-between gap-3 p-3 rounded-2xl border-2 border-amber-200 dark:border-amber-900 bg-white dark:bg-gray-900 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors text-left"
+                      className={cn(`w-full flex items-center justify-between gap-3 p-3 rounded-2xl border-2 ${colors.border.light} dark:${colors.border.dark} bg-white dark:bg-gray-900 hover:opacity-80 transition-colors text-left`)}
                     >
                       <span className="flex-1 text-sm font-medium text-gray-900 dark:text-white truncate">
                         {product.name}
                       </span>
-                      <span className="text-sm font-bold bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent flex-shrink-0">
+                      <span className={cn(`text-sm font-bold bg-gradient-to-r ${colors.titleGradient.light} dark:${colors.titleGradient.dark} bg-clip-text text-transparent flex-shrink-0`)}>
                         {product.price.toLocaleString('ru-RU')} ₽
                       </span>
                     </button>

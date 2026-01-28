@@ -5,8 +5,10 @@ import { MiniAppHeader } from '@/components/MiniAppHeader';
 import { BottomNavigation } from '@/components/BottomNavigation';
 import { DeliveryModeToggle } from '@/components/DeliveryModeToggle';
 import { useCartStore } from '@/store/cartStore';
+import { useTheme } from '@/contexts/ThemeContext';
 import { CheckCircle } from 'lucide-react';
 import { shopApi, deliverySettingsApi, paymentMethodsApi, type PaymentMethodSetting } from '@/services/api';
+import { cn } from '@/lib/utils';
 
 type DeliveryType = 'pickup' | 'delivery';
 
@@ -14,6 +16,7 @@ export function CheckoutPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { shopSlug } = useParams<{ shopSlug: string }>();
+  const { colors } = useTheme();
   const { items, getTotalAmount, clearCart, shopId } = useCartStore();
   const [shopIdState, setShopIdState] = useState<number | null>(null);
   
@@ -348,11 +351,11 @@ export function CheckoutPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-amber-50 via-orange-50 to-red-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 pb-28">
+    <div className={cn(`min-h-screen bg-gradient-to-b ${colors.bgGradient.light} dark:${colors.bgGradient.dark} pb-28`)}>
       <MiniAppHeader title="Оформление заказа" showBack={true} showSearch={false} />
 
       {/* Delivery Mode Toggle */}
-      <div className="sticky top-14 z-30 bg-white/95 dark:bg-gray-950/95 backdrop-blur-xl border-b-2 border-amber-200 dark:border-amber-900">
+      <div className={cn(`sticky top-14 z-30 bg-white/95 dark:bg-gray-950/95 backdrop-blur-xl border-b-2 ${colors.border.light} dark:${colors.border.dark}`)}>
         <DeliveryModeToggle 
           value={deliveryType === 'delivery' ? 'delivery' : 'pickup'} 
           onChange={(value) => setDeliveryType(value)} 
@@ -528,7 +531,7 @@ export function CheckoutPage() {
               )}
               <div className="flex items-center justify-between pt-2 border-t border-amber-200 dark:border-amber-900">
                 <span className="text-lg font-bold text-gray-700 dark:text-gray-300">Итого:</span>
-                <span className="text-3xl font-black bg-gradient-to-r from-amber-600 via-orange-600 to-red-600 bg-clip-text text-transparent">
+                <span className={cn(`text-3xl font-black bg-gradient-to-r ${colors.titleGradient.light} dark:${colors.titleGradient.dark} bg-clip-text text-transparent`)}>
                   {finalAmount.toLocaleString('ru-RU')} ₽
                 </span>
               </div>
@@ -538,7 +541,7 @@ export function CheckoutPage() {
               disabled={isSubmitting || !isMinOrderMet()}
               whileHover={{ scale: (isSubmitting || !isMinOrderMet()) ? 1 : 1.02 }}
               whileTap={{ scale: (isSubmitting || !isMinOrderMet()) ? 1 : 0.98 }}
-              className="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-600 text-white font-black text-lg shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed"
+              className={cn(`w-full py-4 rounded-2xl bg-gradient-to-r ${colors.buttonGradient.light} dark:${colors.buttonGradient.dark} text-white font-black text-lg shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed`)}
             >
               {isSubmitting ? 'Оформление...' : !isMinOrderMet() ? `Минимум ${minDeliveryOrderTotal?.toLocaleString('ru-RU')} ₽` : 'Подтвердить заказ'}
             </motion.button>
