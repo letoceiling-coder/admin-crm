@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Модель настроек способов оплаты
@@ -113,9 +115,9 @@ class PaymentMethodSetting extends Model
      * 
      * @param int|null $userId
      * @param int|null $shopId
-     * @return \Illuminate\Database\Eloquent\Collection
+     * @return \Illuminate\Support\Collection
      */
-    public static function getSettings(?int $userId = null, ?int $shopId = null): \Illuminate\Database\Eloquent\Collection
+    public static function getSettings(?int $userId = null, ?int $shopId = null): \Illuminate\Support\Collection
     {
         $query = static::query();
         
@@ -160,60 +162,82 @@ class PaymentMethodSetting extends Model
         $result = collect();
         $hasDefault = false;
         
-        foreach ($defaultMethods as $code => $defaults) {
-            $setting = $settings->firstWhere('payment_method_code', $code);
-            if (!$setting) {
-                try {
+        // Используем транзакцию для атомарности
+        try {
+            DB::beginTransaction();
+            
+            foreach ($defaultMethods as $code => $defaults) {
+                $setting = $settings->firstWhere('payment_method_code', $code);
+                if (!$setting) {
                     // Если уже есть способ оплаты по умолчанию, не устанавливаем is_default для текущего
                     if (isset($defaults['is_default']) && $defaults['is_default'] && $hasDefault) {
                         $defaults['is_default'] = false;
                     }
                     
-                    $setting = static::create(array_merge([
-                        'user_id' => $userId,
-                        'shop_id' => $shopId,
-                        'payment_method_code' => $code,
-                    ], $defaults));
-                    
+                    try {
+                        $setting = static::create(array_merge([
+                            'user_id' => $userId,
+                            'shop_id' => $shopId,
+                            'payment_method_code' => $code,
+                        ], $defaults));
+                        
+                        if ($setting->is_default) {
+                            $hasDefault = true;
+                        }
+                    } catch (\Illuminate\Database\QueryException $e) {
+                        // Если возникла ошибка уникального индекса, пытаемся найти существующую запись
+                        if ($e->getCode() == 23000 || str_contains($e->getMessage(), 'Duplicate entry')) {
+                            $setting = static::where(function ($q) use ($userId) {
+                                if ($userId !== null) {
+                                    $q->where('user_id', $userId);
+                                } else {
+                                    $q->whereNull('user_id');
+                                }
+                            })
+                                ->where(function ($q) use ($shopId) {
+                                    if ($shopId !== null) {
+                                        $q->where('shop_id', $shopId);
+                                    } else {
+                                        $q->whereNull('shop_id');
+                                    }
+                                })
+                                ->where('payment_method_code', $code)
+                                ->first();
+                            
+                            if (!$setting) {
+                                Log::error('Error creating payment method setting - duplicate but not found', [
+                                    'code' => $code,
+                                    'user_id' => $userId,
+                                    'shop_id' => $shopId,
+                                    'error' => $e->getMessage(),
+                                ]);
+                                continue;
+                            }
+                        } else {
+                            throw $e;
+                        }
+                    }
+                } else {
                     if ($setting->is_default) {
                         $hasDefault = true;
                     }
-                } catch (\Exception $e) {
-                    // Если возникла ошибка (например, дубликат), пытаемся найти существующую запись
-                    $setting = static::where(function ($query) use ($userId) {
-                        if ($userId !== null) {
-                            $query->where('user_id', $userId);
-                        } else {
-                            $query->whereNull('user_id');
-                        }
-                    })
-                        ->where(function ($query) use ($shopId) {
-                            if ($shopId !== null) {
-                                $query->where('shop_id', $shopId);
-                            } else {
-                                $query->whereNull('shop_id');
-                            }
-                        })
-                        ->where('payment_method_code', $code)
-                        ->first();
-                    
-                    if (!$setting) {
-                        // Если все еще не найдено, пропускаем этот способ оплаты
-                        Log::error('Error creating payment method setting', [
-                            'code' => $code,
-                            'user_id' => $userId,
-                            'shop_id' => $shopId,
-                            'error' => $e->getMessage(),
-                        ]);
-                        continue;
-                    }
                 }
-            } else {
-                if ($setting->is_default) {
-                    $hasDefault = true;
+                
+                if ($setting) {
+                    $result->push($setting);
                 }
             }
-            $result->push($setting);
+            
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error in getSettings for payment methods', [
+                'user_id' => $userId,
+                'shop_id' => $shopId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            throw $e;
         }
         
         // Убеждаемся, что только один способ оплаты помечен как default
