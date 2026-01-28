@@ -49,7 +49,7 @@ async function fetchApi<T>(
   const isJson = contentType && contentType.includes('application/json');
 
   if (!response.ok) {
-    let error: { message?: string; error?: string };
+    let error: { message?: string; error?: string; errors?: Record<string, string[]> };
     if (isJson) {
       try {
         error = await response.json();
@@ -60,7 +60,13 @@ async function fetchApi<T>(
       const text = await response.text();
       error = { message: `HTTP error! status: ${response.status}. Server returned: ${text.substring(0, 100)}` };
     }
-    const message = error?.error ?? error?.message ?? `HTTP error! status: ${response.status}`;
+    // Для 422 Laravel возвращает errors: { field: ["текст"] } — показываем первый текст валидации
+    const firstValidationError =
+      error?.errors && typeof error.errors === 'object'
+        ? (Object.values(error.errors).flat().find(Boolean) as string | undefined)
+        : undefined;
+    const message =
+      firstValidationError ?? error?.error ?? error?.message ?? `HTTP error! status: ${response.status}`;
     throw new Error(message);
   }
 

@@ -239,6 +239,11 @@ class PublicOrderController extends Controller
 
             return response()->json($order, 201);
         } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('PublicOrderController::store exception', [
+                'shop_id' => $shopId,
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
             return response()->json(['message' => 'Ошибка создания заказа'], 500);
         }
     }
