@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useState, useEffect } from 'react';
 import { CatalogPage } from './pages/CatalogPage';
@@ -23,7 +23,8 @@ const queryClient = new QueryClient({
 });
 
 function AppContent() {
-  const { shopSlug } = useParams<{ shopSlug?: string }>();
+  const location = useLocation();
+  const shopSlug = (location.pathname.split('/').filter(Boolean)[0] ?? null) as string | null;
   const [template, setTemplate] = useState<TemplateName>('amber');
 
   useEffect(() => {
