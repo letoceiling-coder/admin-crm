@@ -1,17 +1,92 @@
 import { useNavigate, useParams } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { MiniAppHeader } from '@/components/MiniAppHeader';
 import { BottomNavigation } from '@/components/BottomNavigation';
 import { ProductCard } from '@/components/ProductCard';
 import { useCartStore } from '@/store/cartStore';
+import { shopApi, deliverySettingsApi } from '@/services/api';
 import { Trash2, ShoppingBag } from 'lucide-react';
 
 export function CartPage() {
   const navigate = useNavigate();
   const { shopSlug } = useParams<{ shopSlug: string }>();
-  const { items, clearCart, getTotalItems, getTotalAmount } = useCartStore();
+  const { items, clearCart, getTotalItems, getTotalAmount, shopId } = useCartStore();
   const totalItems = getTotalItems();
   const totalAmount = getTotalAmount();
+  const [shopIdState, setShopIdState] = useState<number | null>(null);
+  const [minDeliveryOrderTotal, setMinDeliveryOrderTotal] = useState<number | null>(null);
+  const [orderMode, setOrderMode] = useState<'delivery' | 'pickup'>('pickup');
+
+  // Получение shopId из shopSlug
+  useEffect(() => {
+    if (shopSlug) {
+      shopApi.getBySlug(shopSlug)
+        .then((shop: any) => {
+          setShopIdState(shop.id);
+        })
+        .catch((error: any) => {
+          console.error('Ошибка загрузки магазина:', error);
+        });
+    } else if (shopId) {
+      setShopIdState(shopId);
+    }
+  }, [shopSlug, shopId]);
+
+  // Получение режима заказа из localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem('orderMode');
+    if (saved === 'delivery' || saved === 'pickup') {
+      setOrderMode(saved);
+    }
+  }, []);
+
+  // Загрузка настроек доставки
+  useEffect(() => {
+    if (!shopIdState) return;
+    
+    const loadSettings = async () => {
+      try {
+        const settings = await deliverySettingsApi.getSettings(shopIdState);
+        if (settings.min_delivery_order_total_rub !== undefined && settings.min_delivery_order_total_rub !== null) {
+          setMinDeliveryOrderTotal(Number(settings.min_delivery_order_total_rub));
+        } else {
+          setMinDeliveryOrderTotal(null);
+        }
+      } catch (error) {
+        console.error('Error loading delivery settings:', error);
+      }
+    };
+
+    loadSettings();
+  }, [shopIdState]);
+
+  // Проверка минимальной суммы заказа
+  const isMinOrderMet = (): boolean => {
+    if (orderMode === 'delivery' && minDeliveryOrderTotal !== null) {
+      return totalAmount >= minDeliveryOrderTotal;
+    }
+    // Для самовывоза минимальная сумма не требуется
+    return true;
+  };
+
+  const getRemainingAmount = (): number => {
+    if (orderMode === 'delivery' && minDeliveryOrderTotal !== null && totalAmount < minDeliveryOrderTotal) {
+      return minDeliveryOrderTotal - totalAmount;
+    }
+    return 0;
+  };
+
+  const handleCheckout = () => {
+    // Проверка минимальной суммы заказа перед переходом на оформление
+    if (!isMinOrderMet()) {
+      const remaining = getRemainingAmount();
+      alert(`Минимальная сумма заказа для доставки: ${minDeliveryOrderTotal?.toLocaleString('ru-RU')} ₽\nДобавьте товаров на ${remaining.toLocaleString('ru-RU')} ₽`);
+      return;
+    }
+    
+    navigate(`/${shopSlug}/checkout`);
+  };
 
   if (totalItems === 0) {
     return (
@@ -81,6 +156,18 @@ export function CartPage() {
           animate={{ opacity: 1, y: 0 }}
           className="bg-white dark:bg-gray-900 rounded-3xl p-6 mb-4 shadow-2xl border-2 border-amber-200 dark:border-amber-900"
         >
+          {/* Предупреждение о минимальной сумме заказа */}
+          {!isMinOrderMet() && (
+            <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border-2 border-red-200 dark:border-red-900 rounded-xl">
+              <p className="text-sm font-bold text-red-800 dark:text-red-200 mb-1">
+                Минимальная сумма заказа для доставки: {minDeliveryOrderTotal?.toLocaleString('ru-RU')} ₽
+              </p>
+              <p className="text-xs text-red-600 dark:text-red-400">
+                Добавьте товаров на {getRemainingAmount().toLocaleString('ru-RU')} ₽ для оформления доставки
+              </p>
+            </div>
+          )}
+
           <div className="flex items-center justify-between mb-4">
             <span className="text-lg font-bold text-gray-700 dark:text-gray-300">Итого:</span>
             <span className="text-3xl font-black bg-gradient-to-r from-amber-600 via-orange-600 to-red-600 bg-clip-text text-transparent">
@@ -88,12 +175,13 @@ export function CartPage() {
             </span>
           </div>
           <motion.button
-            whileHover={{ scale: 1.02, boxShadow: '0 20px 40px rgba(245, 158, 11, 0.4)' }}
+            whileHover={{ scale: isMinOrderMet() ? 1.02 : 1, boxShadow: isMinOrderMet() ? '0 20px 40px rgba(245, 158, 11, 0.4)' : 'none' }}
             whileTap={{ scale: 0.98 }}
-            onClick={() => navigate(`/${shopSlug}/checkout`)}
-            className="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-600 text-white font-black text-lg shadow-2xl"
+            onClick={handleCheckout}
+            disabled={!isMinOrderMet()}
+            className="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-600 text-white font-black text-lg shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Оформить заказ
+            {!isMinOrderMet() ? `Минимум ${minDeliveryOrderTotal?.toLocaleString('ru-RU')} ₽` : 'Оформить заказ'}
           </motion.button>
         </motion.div>
       </div>

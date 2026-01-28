@@ -42,6 +42,7 @@ export function CheckoutPage() {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string | null>(null);
   const [paymentDiscount, setPaymentDiscount] = useState<{ discount: number; final_amount: number; applied: boolean } | null>(null);
   const [paymentNotification, setPaymentNotification] = useState<string | null>(null);
+  const [minDeliveryOrderTotal, setMinDeliveryOrderTotal] = useState<number | null>(null);
 
   const totalAmount = getTotalAmount();
   
@@ -83,6 +84,12 @@ export function CheckoutPage() {
         }
         if (settings.delivery_type) {
           setDeliveryTypeSettings(settings.delivery_type);
+        }
+        // Загружаем минимальную сумму заказа для доставки
+        if (settings.min_delivery_order_total_rub !== undefined && settings.min_delivery_order_total_rub !== null) {
+          setMinDeliveryOrderTotal(Number(settings.min_delivery_order_total_rub));
+        } else {
+          setMinDeliveryOrderTotal(null);
         }
       } catch (error) {
         console.error('Error loading delivery settings:', error);
@@ -248,8 +255,31 @@ export function CheckoutPage() {
     }
   }, []);
 
+  // Проверка минимальной суммы заказа
+  const isMinOrderMet = (): boolean => {
+    if (deliveryType === 'delivery' && minDeliveryOrderTotal !== null) {
+      return totalAmount >= minDeliveryOrderTotal;
+    }
+    // Для самовывоза минимальная сумма не требуется (или можно добавить отдельную настройку)
+    return true;
+  };
+
+  const getRemainingAmount = (): number => {
+    if (deliveryType === 'delivery' && minDeliveryOrderTotal !== null && totalAmount < minDeliveryOrderTotal) {
+      return minDeliveryOrderTotal - totalAmount;
+    }
+    return 0;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Проверка минимальной суммы заказа
+    if (!isMinOrderMet()) {
+      const remaining = getRemainingAmount();
+      alert(`Минимальная сумма заказа для доставки: ${minDeliveryOrderTotal?.toLocaleString('ru-RU')} ₽\nДобавьте товаров на ${remaining.toLocaleString('ru-RU')} ₽`);
+      return;
+    }
     
     // Проверка обязательных полей
     if (!selectedPaymentMethod) {
@@ -505,12 +535,12 @@ export function CheckoutPage() {
             </div>
             <motion.button
               type="submit"
-              disabled={isSubmitting}
-              whileHover={{ scale: isSubmitting ? 1 : 1.02 }}
-              whileTap={{ scale: isSubmitting ? 1 : 0.98 }}
+              disabled={isSubmitting || !isMinOrderMet()}
+              whileHover={{ scale: (isSubmitting || !isMinOrderMet()) ? 1 : 1.02 }}
+              whileTap={{ scale: (isSubmitting || !isMinOrderMet()) ? 1 : 0.98 }}
               className="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-600 text-white font-black text-lg shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isSubmitting ? 'Оформление...' : 'Подтвердить заказ'}
+              {isSubmitting ? 'Оформление...' : !isMinOrderMet() ? `Минимум ${minDeliveryOrderTotal?.toLocaleString('ru-RU')} ₽` : 'Подтвердить заказ'}
             </motion.button>
           </motion.div>
         </form>
