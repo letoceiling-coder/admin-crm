@@ -226,6 +226,42 @@ export const templates: Record<TemplateName, TemplateColors> = {
   },
 };
 
-export const getTemplateColors = (template: TemplateName, isDark: boolean): TemplateColors => {
+export const getTemplateColors = (template: TemplateName, _isDark?: boolean): TemplateColors => {
   return templates[template];
 };
+
+/** Объединяет light- и dark-классы: каждый класс из dark получает префикс dark: для корректной работы Tailwind */
+export function mergeLightDark(light: string, dark: string): string {
+  const darkPrefixed = dark
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((c) => `dark:${c}`)
+    .join(' ');
+  return `${light} ${darkPrefixed}`.trim();
+}
+
+/** Цвета шаблона в виде готовых строк классов (light + dark:...) для подстановки в className */
+export type ResolvedTemplateColors = {
+  bgGradient: string;
+  border: string;
+  titleGradient: string;
+  buttonGradient: string;
+  accent: string;
+  cardBg: string;
+  navBg: string;
+  active: string;
+};
+
+export function getResolvedTemplateColors(template: TemplateName): ResolvedTemplateColors {
+  const t = templates[template];
+  return {
+    bgGradient: mergeLightDark(t.bgGradient.light, t.bgGradient.dark),
+    border: mergeLightDark(t.border.light, t.border.dark),
+    titleGradient: mergeLightDark(t.titleGradient.light, t.titleGradient.dark),
+    buttonGradient: mergeLightDark(t.buttonGradient.light, t.buttonGradient.dark),
+    accent: mergeLightDark(t.accent.light, t.accent.dark),
+    cardBg: mergeLightDark(t.cardBg.light, t.cardBg.dark),
+    navBg: mergeLightDark(t.navBg.light, t.navBg.dark),
+    active: mergeLightDark(t.active.light, t.active.dark),
+  };
+}

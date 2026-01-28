@@ -93,7 +93,7 @@ export function CartPage() {
 
   if (totalItems === 0) {
     return (
-      <div className={cn(`min-h-screen bg-gradient-to-b ${colors.bgGradient.light} dark:${colors.bgGradient.dark} pb-20`)}>
+      <div className={cn(`min-h-screen bg-gradient-to-b ${colors.bgGradient} pb-20`)}>
         <MiniAppHeader title="Корзина" showBack={true} showSearch={false} />
         <div className="flex flex-col items-center justify-center px-4 py-20">
           <ShoppingBag className="h-24 w-24 text-gray-300 dark:text-gray-700 mb-4" />
@@ -105,7 +105,7 @@ export function CartPage() {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => navigate(`/${shopSlug}`)}
-            className={cn(`px-6 py-3 rounded-2xl bg-gradient-to-r ${colors.buttonGradient.light} dark:${colors.buttonGradient.dark} text-white font-bold shadow-lg`)}
+            className={cn(`px-6 py-3 rounded-2xl bg-gradient-to-r ${colors.buttonGradient} text-white font-bold shadow-lg`)}
           >
             Перейти в каталог
           </motion.button>
@@ -157,7 +157,7 @@ export function CartPage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className={cn(`${colors.cardBg.light} dark:${colors.cardBg.dark} rounded-3xl p-6 mb-4 shadow-2xl border-2 ${colors.border.light} dark:${colors.border.dark}`)}
+          className={cn(`${colors.cardBg} rounded-3xl p-6 mb-4 shadow-2xl border-2 ${colors.border}`)}
         >
           {/* Предупреждение о минимальной сумме заказа */}
           {!isMinOrderMet() && (
@@ -182,7 +182,7 @@ export function CartPage() {
             whileTap={{ scale: 0.98 }}
             onClick={handleCheckout}
             disabled={!isMinOrderMet()}
-            className={cn(`w-full py-4 rounded-2xl bg-gradient-to-r ${colors.buttonGradient.light} dark:${colors.buttonGradient.dark} text-white font-black text-lg shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed`)}
+            className={cn(`w-full py-4 rounded-2xl bg-gradient-to-r ${colors.buttonGradient} text-white font-black text-lg shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed`)}
           >
             {!isMinOrderMet() ? `Минимум ${minDeliveryOrderTotal?.toLocaleString('ru-RU')} ₽` : 'Оформить заказ'}
           </motion.button>

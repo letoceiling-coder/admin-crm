@@ -131,9 +131,9 @@ export function CatalogPage() {
 
   if (categoriesLoading || productsLoading || !shopId) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-amber-50 via-orange-50 to-red-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 flex items-center justify-center">
+      <div className={cn(`min-h-screen bg-gradient-to-b ${colors.bgGradient} flex items-center justify-center`)}>
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600 mx-auto"></div>
+          <div className={cn('animate-spin rounded-full h-12 w-12 border-b-2 mx-auto', colors.border)}></div>
           <p className="mt-4 text-gray-600 dark:text-gray-400">Загрузка...</p>
         </div>
       </div>
@@ -141,14 +141,14 @@ export function CatalogPage() {
   }
 
   return (
-    <div className={cn(`min-h-screen bg-gradient-to-b ${colors.bgGradient.light} dark:${colors.bgGradient.dark} pb-28`)}>
+    <div className={cn(`min-h-screen bg-gradient-to-b ${colors.bgGradient} pb-28`)}>
       <MiniAppHeader title="Каталог" />
 
       {/* Sticky Menu: Delivery Mode Toggle + Category Tabs */}
       <motion.div
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        className={cn(`sticky top-16 z-30 bg-white/95 dark:bg-gray-950/95 backdrop-blur-xl border-b-2 ${colors.border.light} dark:${colors.border.dark}`)}
+        className={cn(`sticky top-16 z-30 bg-white/95 dark:bg-gray-950/95 backdrop-blur-xl border-b-2 ${colors.border}`)}
       >
         {/* Delivery Mode Toggle */}
         <DeliveryModeToggle value={orderMode} onChange={setOrderMode} />

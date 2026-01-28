@@ -1,11 +1,11 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import type { ReactNode } from 'react';
-import { getTemplateColors, type TemplateName, type TemplateColors } from '@/lib/templates';
+import { getResolvedTemplateColors, type TemplateName, type ResolvedTemplateColors } from '@/lib/templates';
 
 interface ThemeContextType {
   template: TemplateName;
   isDark: boolean;
-  colors: TemplateColors;
+  colors: ResolvedTemplateColors;
   toggleTheme: () => void;
   setTemplate: (template: TemplateName) => void;
 }
@@ -33,7 +33,7 @@ export function ThemeProvider({
     return false;
   });
 
-  const colors = getTemplateColors(template, isDark);
+  const colors = useMemo(() => getResolvedTemplateColors(template), [template]);
 
   // Обновляем template при изменении initialTemplate
   useEffect(() => {

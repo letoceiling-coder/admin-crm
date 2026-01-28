@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { useTheme } from '@/contexts/ThemeContext';
 import type { Category } from '@/types';
 
 interface CategoryTabsProps {
@@ -15,6 +16,7 @@ export function CategoryTabs({
   onCategoryChange,
 }: CategoryTabsProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const { colors } = useTheme();
 
   return (
     <div
@@ -46,8 +48,8 @@ export function CategoryTabs({
           className={cn(
             'flex-shrink-0 rounded-2xl px-5 h-10 text-sm font-black transition-all duration-300 whitespace-nowrap border-2 shadow-lg',
             activeCategory === category.id
-              ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white border-transparent'
-              : 'bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 border-amber-200 dark:border-amber-900'
+              ? cn('bg-gradient-to-r text-white border-transparent', colors.buttonGradient)
+              : cn(colors.cardBg, 'text-gray-700 dark:text-gray-300', colors.border)
           )}
         >
           {category.name}

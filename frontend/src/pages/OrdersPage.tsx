@@ -11,14 +11,14 @@ export function OrdersPage() {
   const { colors } = useTheme();
 
   return (
-    <div className={cn(`min-h-screen bg-gradient-to-b ${colors.bgGradient.light} dark:${colors.bgGradient.dark} pb-20`)}>
+    <div className={cn(`min-h-screen bg-gradient-to-b ${colors.bgGradient} pb-20`)}>
       <MiniAppHeader title="Мои заказы" showBack={false} showSearch={false} />
 
       <div className="px-4 py-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className={cn(`${colors.cardBg.light} dark:${colors.cardBg.dark} rounded-3xl p-8 shadow-2xl border-2 ${colors.border.light} dark:${colors.border.dark}`)}
+          className={cn(`${colors.cardBg} rounded-3xl p-8 shadow-2xl border-2 ${colors.border}`)}
         >
           <div className="flex flex-col items-center justify-center py-12">
             <motion.div
@@ -27,7 +27,7 @@ export function OrdersPage() {
               transition={{ delay: 0.2, type: 'spring' }}
               className="mb-6"
             >
-              <Package className={cn(`h-24 w-24 ${colors.active.light} dark:${colors.active.dark}`)} />
+              <Package className={cn(`h-24 w-24 ${colors.active}`)} />
             </motion.div>
             <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-2">
               Заказы

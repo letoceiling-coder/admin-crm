@@ -37,9 +37,9 @@ export function ProductDetailPage() {
 
   if (isLoading) {
     return (
-      <div className={cn(`min-h-screen bg-gradient-to-b ${colors.bgGradient.light} dark:${colors.bgGradient.dark} flex items-center justify-center`)}>
+      <div className={cn(`min-h-screen bg-gradient-to-b ${colors.bgGradient} flex items-center justify-center`)}>
         <div className="text-center">
-          <div className={cn(`animate-spin rounded-full h-12 w-12 border-b-2 ${colors.active.light} dark:${colors.active.dark} mx-auto`)}></div>
+          <div className={cn(`animate-spin rounded-full h-12 w-12 border-b-2 ${colors.active} mx-auto`)}></div>
           <p className="mt-4 text-gray-600 dark:text-gray-400">Загрузка...</p>
         </div>
       </div>
@@ -48,13 +48,13 @@ export function ProductDetailPage() {
 
   if (!product) {
     return (
-      <div className={cn(`min-h-screen bg-gradient-to-b ${colors.bgGradient.light} dark:${colors.bgGradient.dark} pb-20`)}>
+      <div className={cn(`min-h-screen bg-gradient-to-b ${colors.bgGradient} pb-20`)}>
         <MiniAppHeader title="Товар не найден" showBack={true} />
         <div className="flex flex-col items-center justify-center px-4 py-20">
           <p className="text-lg font-black text-gray-900 dark:text-white mb-4">Товар не найден</p>
           <button
             onClick={() => navigate(`/${shopSlug}`)}
-            className={cn(`px-6 py-3 rounded-2xl bg-gradient-to-r ${colors.buttonGradient.light} dark:${colors.buttonGradient.dark} text-white font-bold`)}
+            className={cn(`px-6 py-3 rounded-2xl bg-gradient-to-r ${colors.buttonGradient} text-white font-bold`)}
           >
             Вернуться в каталог
           </button>
@@ -71,7 +71,7 @@ export function ProductDetailPage() {
     : [defaultImageUrl || '/system/no-image.png'];
 
   return (
-    <div className={cn(`min-h-screen bg-gradient-to-b ${colors.bgGradient.light} dark:${colors.bgGradient.dark} pb-20 overflow-x-hidden`)}>
+    <div className={cn(`min-h-screen bg-gradient-to-b ${colors.bgGradient} pb-20 overflow-x-hidden`)}>
       <MiniAppHeader title={product.name} showBack={true} showSearch={false} />
 
       <div className="px-4 py-4 max-w-full overflow-x-hidden">
@@ -99,8 +99,8 @@ export function ProductDetailPage() {
                   onClick={() => setSelectedImage(index)}
                   className={`flex-shrink-0 w-24 h-24 rounded-2xl overflow-hidden border-2 shadow-lg ${
                     selectedImage === index
-                      ? `${colors.active.light} dark:${colors.active.dark} ring-2 ring-opacity-50`
-                      : `${colors.border.light} dark:${colors.border.dark}`
+                      ? `${colors.active} ring-2 ring-opacity-50`
+                      : colors.border
                   }`}
                 >
                   <img
@@ -129,8 +129,8 @@ export function ProductDetailPage() {
           </div>
 
           {/* Price */}
-          <div className={cn(`mb-4 p-4 rounded-2xl bg-gradient-to-r ${colors.bgGradient.light} dark:${colors.bgGradient.dark} opacity-50`)}>
-            <span className={cn(`text-5xl font-black bg-gradient-to-r ${colors.titleGradient.light} dark:${colors.titleGradient.dark} bg-clip-text text-transparent`)}>
+          <div className={cn(`mb-4 p-4 rounded-2xl bg-gradient-to-r ${colors.bgGradient} opacity-50`)}>
+            <span className={cn(`text-5xl font-black bg-gradient-to-r ${colors.titleGradient} bg-clip-text text-transparent`)}>
               {product.price.toLocaleString('ru-RU')} ₽
             </span>
             {product.unit && (

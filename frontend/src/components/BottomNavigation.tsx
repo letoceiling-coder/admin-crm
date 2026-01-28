@@ -38,7 +38,7 @@ export function BottomNavigation() {
     <motion.nav
       initial={{ y: 100 }}
       animate={{ y: 0 }}
-      className={cn(`fixed bottom-0 left-0 right-0 z-50 border-t-2 ${colors.border.light} dark:${colors.border.dark} bg-gradient-to-r ${colors.navBg.light} dark:${colors.navBg.dark} backdrop-blur-xl safe-area-bottom shadow-2xl`)}
+      className={cn(`fixed bottom-0 left-0 right-0 z-50 border-t-2 ${colors.border} bg-gradient-to-r ${colors.navBg} backdrop-blur-xl safe-area-bottom shadow-2xl`)}
     >
       <div className="flex h-16 items-center justify-around">
         {navItems.map((item) => {
@@ -53,16 +53,14 @@ export function BottomNavigation() {
               onClick={() => navigate(item.path)}
               className={cn(
                 'relative flex flex-col items-center justify-center gap-1 py-2 flex-1 transition-colors',
-                active
-                  ? 'text-amber-600 dark:text-amber-400'
-                  : 'text-gray-500 dark:text-gray-400'
+                active ? colors.active : 'text-gray-500 dark:text-gray-400'
               )}
             >
               <div className="relative">
                 {active && (
                   <motion.div
                     layoutId="activeTab"
-                    className={cn(`absolute inset-0 rounded-full bg-gradient-to-r ${colors.buttonGradient.light} dark:${colors.buttonGradient.dark} opacity-20`)}
+                    className={cn(`absolute inset-0 rounded-full bg-gradient-to-r ${colors.buttonGradient} opacity-20`)}
                   />
                 )}
                 <Icon className={cn("h-6 w-6 relative z-10", active && "drop-shadow-lg")} />
@@ -70,7 +68,7 @@ export function BottomNavigation() {
                   <motion.span
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
-                    className={cn(`absolute -right-2 -top-2 z-20 flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-r ${colors.accent.light} dark:${colors.accent.dark} text-xs font-black text-white shadow-xl`)}
+                    className={cn(`absolute -right-2 -top-2 z-20 flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-r ${colors.accent} text-xs font-black text-white shadow-xl`)}
                   >
                     {item.badge > 9 ? '9+' : item.badge}
                   </motion.span>
@@ -82,7 +80,7 @@ export function BottomNavigation() {
               {active && (
                 <motion.div
                   layoutId="activeIndicator"
-                  className={cn(`absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r ${colors.buttonGradient.light} dark:${colors.buttonGradient.dark} rounded-t-full`)}
+                  className={cn(`absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r ${colors.buttonGradient} rounded-t-full`)}
                 />
               )}
             </motion.button>

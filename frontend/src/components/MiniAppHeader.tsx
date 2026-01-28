@@ -34,7 +34,9 @@ export function MiniAppHeader({
       initial={{ y: -100 }}
       animate={{ y: 0 }}
       className={cn(
-        "sticky top-0 z-50 flex h-16 items-center justify-between border-b-2 border-amber-200 dark:border-amber-900 bg-gradient-to-r from-amber-50 via-orange-50 to-red-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 backdrop-blur-xl px-4 safe-area-top shadow-lg w-full max-w-full overflow-hidden",
+        "sticky top-0 z-50 flex h-16 items-center justify-between border-b-2 backdrop-blur-xl px-4 safe-area-top shadow-lg w-full max-w-full overflow-hidden bg-gradient-to-r",
+        colors.border,
+        colors.navBg,
         className
       )}
     >
@@ -44,7 +46,7 @@ export function MiniAppHeader({
             whileHover={{ scale: 1.1, rotate: -5 }}
             whileTap={{ scale: 0.9 }}
             onClick={() => navigate(-1)}
-            className={cn(`flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br ${colors.buttonGradient.light} dark:${colors.buttonGradient.dark} text-white shadow-lg`)}
+            className={cn(`flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br ${colors.buttonGradient} text-white shadow-lg`)}
             aria-label="Назад"
           >
             <ChevronLeft className="h-6 w-6" />
@@ -53,7 +55,7 @@ export function MiniAppHeader({
       </div>
 
       <div className="flex items-center gap-2 flex-1 justify-center px-2 min-w-0 max-w-full overflow-hidden">
-        <h1 className={cn(`text-xl font-black bg-gradient-to-r ${colors.titleGradient.light} dark:${colors.titleGradient.dark} bg-clip-text text-transparent truncate max-w-full min-w-0 flex-1 text-center`)}>
+        <h1 className={cn(`text-xl font-black bg-gradient-to-r ${colors.titleGradient} bg-clip-text text-transparent truncate max-w-full min-w-0 flex-1 text-center`)}>
           {title}
         </h1>
       </div>
@@ -64,7 +66,7 @@ export function MiniAppHeader({
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
           onClick={toggleTheme}
-          className={cn(`flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br ${colors.buttonGradient.light} dark:${colors.buttonGradient.dark} text-white shadow-lg`)}
+          className={cn(`flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br ${colors.buttonGradient} text-white shadow-lg`)}
           aria-label={isDark ? 'Светлая тема' : 'Темная тема'}
         >
           {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
@@ -75,7 +77,7 @@ export function MiniAppHeader({
             whileHover={{ scale: 1.1, rotate: 5 }}
             whileTap={{ scale: 0.9 }}
             onClick={handleSearchClick}
-            className={cn(`flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br ${colors.accent.light} dark:${colors.accent.dark} text-white shadow-lg`)}
+            className={cn(`flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br ${colors.accent} text-white shadow-lg`)}
             aria-label="Поиск"
           >
             <Search className="h-5 w-5" />

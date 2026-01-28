@@ -136,18 +136,18 @@ export function SearchPage() {
 
   if (!shopSlug) {
     return (
-      <div className={cn(`min-h-screen bg-gradient-to-b ${colors.bgGradient.light} dark:${colors.bgGradient.dark} flex items-center justify-center`)}>
+      <div className={cn(`min-h-screen bg-gradient-to-b ${colors.bgGradient} flex items-center justify-center`)}>
         <p className="text-gray-600 dark:text-gray-400">Магазин не найден</p>
       </div>
     );
   }
 
   return (
-    <div className={cn(`flex flex-col min-h-screen bg-gradient-to-b ${colors.bgGradient.light} dark:${colors.bgGradient.dark} overflow-hidden pb-20`)}>
+    <div className={cn(`flex flex-col min-h-screen bg-gradient-to-b ${colors.bgGradient} overflow-hidden pb-20`)}>
       <MiniAppHeader title="Поиск" showBack={true} showSearch={false} />
 
       {/* Search Input */}
-      <div className={cn(`px-4 pt-3 pb-2 border-b-2 ${colors.border.light} dark:${colors.border.dark} bg-white/80 dark:bg-gray-900/80`)}>
+      <div className={cn(`px-4 pt-3 pb-2 border-b-2 ${colors.border} bg-white/80 dark:bg-gray-900/80`)}>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-amber-600 dark:text-amber-400" />
           <input
@@ -196,12 +196,12 @@ export function SearchPage() {
                     <button
                       key={product.id}
                       onClick={() => handleSuggestionClick(product.id)}
-                      className={cn(`w-full flex items-center justify-between gap-3 p-3 rounded-2xl border-2 ${colors.border.light} dark:${colors.border.dark} bg-white dark:bg-gray-900 hover:opacity-80 transition-colors text-left`)}
+                      className={cn(`w-full flex items-center justify-between gap-3 p-3 rounded-2xl border-2 ${colors.border} bg-white dark:bg-gray-900 hover:opacity-80 transition-colors text-left`)}
                     >
                       <span className="flex-1 text-sm font-medium text-gray-900 dark:text-white truncate">
                         {product.name}
                       </span>
-                      <span className={cn(`text-sm font-bold bg-gradient-to-r ${colors.titleGradient.light} dark:${colors.titleGradient.dark} bg-clip-text text-transparent flex-shrink-0`)}>
+                      <span className={cn(`text-sm font-bold bg-gradient-to-r ${colors.titleGradient} bg-clip-text text-transparent flex-shrink-0`)}>
                         {product.price.toLocaleString('ru-RU')} ₽
                       </span>
                     </button>

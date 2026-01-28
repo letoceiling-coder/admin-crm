@@ -351,11 +351,11 @@ export function CheckoutPage() {
   }
 
   return (
-    <div className={cn(`min-h-screen bg-gradient-to-b ${colors.bgGradient.light} dark:${colors.bgGradient.dark} pb-28`)}>
+    <div className={cn(`min-h-screen bg-gradient-to-b ${colors.bgGradient} pb-28`)}>
       <MiniAppHeader title="Оформление заказа" showBack={true} showSearch={false} />
 
       {/* Delivery Mode Toggle */}
-      <div className={cn(`sticky top-14 z-30 bg-white/95 dark:bg-gray-950/95 backdrop-blur-xl border-b-2 ${colors.border.light} dark:${colors.border.dark}`)}>
+      <div className={cn(`sticky top-14 z-30 bg-white/95 dark:bg-gray-950/95 backdrop-blur-xl border-b-2 ${colors.border}`)}>
         <DeliveryModeToggle 
           value={deliveryType === 'delivery' ? 'delivery' : 'pickup'} 
           onChange={(value) => setDeliveryType(value)} 
@@ -531,7 +531,7 @@ export function CheckoutPage() {
               )}
               <div className="flex items-center justify-between pt-2 border-t border-amber-200 dark:border-amber-900">
                 <span className="text-lg font-bold text-gray-700 dark:text-gray-300">Итого:</span>
-                <span className={cn(`text-3xl font-black bg-gradient-to-r ${colors.titleGradient.light} dark:${colors.titleGradient.dark} bg-clip-text text-transparent`)}>
+                <span className={cn(`text-3xl font-black bg-gradient-to-r ${colors.titleGradient} bg-clip-text text-transparent`)}>
                   {finalAmount.toLocaleString('ru-RU')} ₽
                 </span>
               </div>
@@ -541,7 +541,7 @@ export function CheckoutPage() {
               disabled={isSubmitting || !isMinOrderMet()}
               whileHover={{ scale: (isSubmitting || !isMinOrderMet()) ? 1 : 1.02 }}
               whileTap={{ scale: (isSubmitting || !isMinOrderMet()) ? 1 : 0.98 }}
-              className={cn(`w-full py-4 rounded-2xl bg-gradient-to-r ${colors.buttonGradient.light} dark:${colors.buttonGradient.dark} text-white font-black text-lg shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed`)}
+              className={cn(`w-full py-4 rounded-2xl bg-gradient-to-r ${colors.buttonGradient} text-white font-black text-lg shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed`)}
             >
               {isSubmitting ? 'Оформление...' : !isMinOrderMet() ? `Минимум ${minDeliveryOrderTotal?.toLocaleString('ru-RU')} ₽` : 'Подтвердить заказ'}
             </motion.button>

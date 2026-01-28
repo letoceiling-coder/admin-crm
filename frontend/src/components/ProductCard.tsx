@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { getImageUrl, handleImageError, setDefaultImageUrl } from '@/lib/utils';
 import { useState, useEffect } from 'react';
 import { settingsApi } from '@/services/api';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface ProductCardProps {
   product: Product;
@@ -14,6 +15,7 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, onClick, variant = 'grid' }: ProductCardProps) {
+  const { colors } = useTheme();
   const { items, addItem, updateQuantity } = useCartStore();
   const cartItem = items.find((item) => item.product.id === product.id);
   const quantity = cartItem?.quantity || 0;
@@ -57,10 +59,10 @@ export function ProductCard({ product, onClick, variant = 'grid' }: ProductCardP
     return (
       <motion.div
         whileHover={{ x: 4 }}
-        className="group relative flex cursor-pointer gap-4 rounded-3xl bg-white dark:bg-gray-900 border-2 border-amber-200 dark:border-amber-900 p-4 shadow-lg hover:shadow-2xl transition-all duration-300"
+        className={cn('group relative flex cursor-pointer gap-4 rounded-3xl border-2 p-4 shadow-lg hover:shadow-2xl transition-all duration-300', colors.cardBg, colors.border)}
         onClick={onClick}
       >
-        <div className="h-24 w-24 flex-shrink-0 overflow-hidden rounded-2xl bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900 dark:to-orange-900">
+        <div className={cn('h-24 w-24 flex-shrink-0 overflow-hidden rounded-2xl bg-gradient-to-br', colors.bgGradient)}>
           <img
             src={imageUrl}
             alt={product.name}
@@ -84,7 +86,7 @@ export function ProductCard({ product, onClick, variant = 'grid' }: ProductCardP
               {product.price.toLocaleString('ru-RU')} ₽
             </span>
             {quantity > 0 ? (
-              <div className="flex items-center gap-2 bg-gradient-to-r from-amber-500 to-orange-600 rounded-2xl p-1">
+              <div className={cn('flex items-center gap-2 bg-gradient-to-r rounded-2xl p-1', colors.buttonGradient)}>
                 <motion.button
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
@@ -122,7 +124,7 @@ export function ProductCard({ product, onClick, variant = 'grid' }: ProductCardP
   return (
     <motion.div
       whileHover={{ y: -8, scale: 1.02 }}
-      className="group relative flex flex-col cursor-pointer rounded-3xl bg-white dark:bg-gray-900 border-2 border-amber-200 dark:border-amber-900 overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 h-full"
+      className={cn('group relative flex flex-col cursor-pointer rounded-3xl border-2 overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 h-full', colors.cardBg, colors.border)}
       onClick={onClick}
     >
       <motion.button
@@ -165,7 +167,7 @@ export function ProductCard({ product, onClick, variant = 'grid' }: ProductCardP
         </p>
         
         <div className="mt-auto pt-2 flex items-center justify-between gap-2 min-w-0">
-          <span className="text-lg font-black bg-gradient-to-r from-amber-600 via-orange-600 to-red-600 bg-clip-text text-transparent truncate">
+          <span className={cn('text-lg font-black bg-gradient-to-r bg-clip-text text-transparent truncate', colors.titleGradient)}>
             {product.price.toLocaleString('ru-RU')} ₽
           </span>
           
@@ -200,7 +202,7 @@ export function ProductCard({ product, onClick, variant = 'grid' }: ProductCardP
               whileHover={{ scale: 1.1, rotate: 5 }}
               whileTap={{ scale: 0.9 }}
               onClick={handleAddToCart}
-              className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-2xl flex-shrink-0"
+              className={cn('flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-r text-white shadow-2xl flex-shrink-0', colors.buttonGradient)}
               aria-label="Добавить в корзину"
             >
               <Plus className="h-5 w-5" />

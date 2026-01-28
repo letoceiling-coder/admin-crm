@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface DeliveryProgressIndicatorProps {
   cartTotal: number;
@@ -13,6 +14,7 @@ export function DeliveryProgressIndicator({
   freeDeliveryThreshold,
   className,
 }: DeliveryProgressIndicatorProps) {
+  const { colors } = useTheme();
   // Определяем текущую цель прогресса
   let targetAmount: number;
   let remaining: number;
@@ -90,7 +92,7 @@ export function DeliveryProgressIndicator({
           <div
             className={cn(
               'h-full rounded-full transition-all duration-300 ease-out',
-              isComplete ? 'bg-green-500' : 'bg-gradient-to-r from-amber-500 to-orange-600'
+              isComplete ? 'bg-green-500' : cn('bg-gradient-to-r', colors.buttonGradient)
             )}
             style={{ width: `${progress * 100}%` }}
             aria-valuenow={progress * 100}
