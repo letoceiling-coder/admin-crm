@@ -221,7 +221,7 @@ class PublicOrderController extends Controller
                     'customer_address' => $validated['customer_address'] ?? null,
                     'notes' => $validated['notes'] ?? null,
                     'total_amount' => $validated['total_amount'],
-                    'status' => 'new',
+                    'status' => 'pending',
                     'order_date' => now(),
                 ]);
 

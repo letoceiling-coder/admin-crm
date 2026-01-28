@@ -118,6 +118,7 @@ Route::middleware('auth:sanctum')->group(function () {
         
         // Настройки способов оплаты
         Route::get('payment-methods', [PaymentMethodSettingsController::class, 'index']);
+        Route::post('payment-methods/yookassa/test', [PaymentMethodSettingsController::class, 'testYooKassa']);
         Route::put('payment-methods/{code}', [PaymentMethodSettingsController::class, 'update']);
     });
 

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\PaymentMethodSettingsRequest;
 use App\Models\PaymentMethodSetting;
+use App\Services\Payment\YooKassaService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -40,10 +41,11 @@ class PaymentMethodSettingsController extends Controller
             return response()->json([
                 'data' => $settings->map(function ($setting) {
                     $data = $setting->toArray();
-                    // Добавляем название способа оплаты
                     $data['name'] = $setting->getName();
-                    // Добавляем описание
                     $data['description'] = $setting->getDescription();
+                    if ($setting->payment_method_code === PaymentMethodSetting::CODE_YOOKASSA) {
+                        $data['yookassa_integration'] = $setting->getYooKassaConfigForApi();
+                    }
                     return $data;
                 }),
             ]);
@@ -154,7 +156,19 @@ class PaymentMethodSettingsController extends Controller
                     ->update(['is_default' => false]);
             }
             
-            // Обновляем настройки
+            // Настройки интеграции ЮКасса (привязаны к shop_id)
+            if ($code === PaymentMethodSetting::CODE_YOOKASSA) {
+                $setting->setYooKassaConfig($request->only([
+                    'yookassa_shop_id',
+                    'yookassa_secret_key',
+                    'yookassa_test_shop_id',
+                    'yookassa_test_secret_key',
+                    'yookassa_is_test_mode',
+                    'yookassa_auto_capture',
+                    'yookassa_webhook_url',
+                ]));
+            }
+
             $setting->update($validated);
             
             DB::commit();
@@ -162,6 +176,9 @@ class PaymentMethodSettingsController extends Controller
             $setting->refresh();
             $data = $setting->toArray();
             $data['name'] = $setting->getName();
+            if ($setting->payment_method_code === PaymentMethodSetting::CODE_YOOKASSA) {
+                $data['yookassa_integration'] = $setting->getYooKassaConfigForApi();
+            }
             
             return response()->json([
                 'data' => $data,
@@ -175,6 +192,37 @@ class PaymentMethodSettingsController extends Controller
                 'message' => 'Ошибка при обновлении настроек',
                 'error' => $e->getMessage(),
             ], 500);
+        }
+    }
+
+    /**
+     * Тест подключения к ЮКасса для магазина (интеграция привязана к shop_id).
+     * POST /admin/payment-methods/yookassa/test, body: shop_id
+     */
+    public function testYooKassa(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $shopId = $request->input('shop_id');
+        if (!$shopId) {
+            return response()->json(['message' => 'shop_id обязателен'], 400);
+        }
+        if (!$user->hasAccessToShop($shopId)) {
+            return response()->json(['message' => 'Доступ к магазину запрещён'], 403);
+        }
+        $setting = PaymentMethodSetting::whereNull('user_id')
+            ->where('shop_id', $shopId)
+            ->where('payment_method_code', PaymentMethodSetting::CODE_YOOKASSA)
+            ->first();
+        if (!$setting) {
+            return response()->json(['success' => false, 'message' => 'Настройки ЮКасса для этого магазина не найдены'], 404);
+        }
+        try {
+            $service = new YooKassaService($setting);
+            $result = $service->testConnection();
+            return response()->json($result);
+        } catch (\Throwable $e) {
+            Log::error('YooKassa test error', ['shop_id' => $shopId, 'error' => $e->getMessage()]);
+            return response()->json(['success' => false, 'message' => 'Ошибка: ' . $e->getMessage()], 500);
         }
     }
 

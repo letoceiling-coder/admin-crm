@@ -34,6 +34,14 @@ class PaymentMethodSettingsRequest extends FormRequest
             'show_notification' => ['nullable', 'boolean'],
             'notification_text' => ['nullable', 'string', 'max:500'],
             'settings' => ['nullable', 'array'],
+            // Интеграция ЮКасса (привязана к shop_id)
+            'yookassa_shop_id' => ['nullable', 'string', 'max:100'],
+            'yookassa_secret_key' => ['nullable', 'string', 'max:500'],
+            'yookassa_test_shop_id' => ['nullable', 'string', 'max:100'],
+            'yookassa_test_secret_key' => ['nullable', 'string', 'max:500'],
+            'yookassa_is_test_mode' => ['nullable', 'boolean'],
+            'yookassa_auto_capture' => ['nullable', 'boolean'],
+            'yookassa_webhook_url' => ['nullable', 'string', 'max:500'],
         ];
     }
 

@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 
@@ -359,5 +360,110 @@ class PaymentMethodSetting extends Model
         ];
         
         return $descriptions[$this->payment_method_code] ?? null;
+    }
+
+    /**
+     * Ключи настроек ЮКасса в settings
+     */
+    public const YOOKASSA_SHOP_ID = 'yookassa_shop_id';
+    public const YOOKASSA_SECRET_KEY = 'yookassa_secret_key_encrypted';
+    public const YOOKASSA_TEST_SHOP_ID = 'yookassa_test_shop_id';
+    public const YOOKASSA_TEST_SECRET_KEY = 'yookassa_test_secret_key_encrypted';
+    public const YOOKASSA_IS_TEST_MODE = 'yookassa_is_test_mode';
+    public const YOOKASSA_AUTO_CAPTURE = 'yookassa_auto_capture';
+    public const YOOKASSA_WEBHOOK_URL = 'yookassa_webhook_url';
+
+    /**
+     * Получить настройки интеграции ЮКасса (только для payment_method_code = yookassa).
+     * Секретные ключи расшифровываются. Не отдавать в API — только для сервиса.
+     */
+    public function getYooKassaConfig(): array
+    {
+        if ($this->payment_method_code !== self::CODE_YOOKASSA) {
+            return [];
+        }
+        $s = $this->settings ?? [];
+        $isTest = (bool) ($s[self::YOOKASSA_IS_TEST_MODE] ?? true);
+        $shopId = $isTest
+            ? ($s[self::YOOKASSA_TEST_SHOP_ID] ?? null)
+            : ($s[self::YOOKASSA_SHOP_ID] ?? null);
+        $secretKey = $isTest
+            ? $this->decryptYooKassaSecret($s[self::YOOKASSA_TEST_SECRET_KEY] ?? null)
+            : $this->decryptYooKassaSecret($s[self::YOOKASSA_SECRET_KEY] ?? null);
+        return [
+            'shop_id' => $shopId,
+            'secret_key' => $secretKey,
+            'is_test_mode' => $isTest,
+            'auto_capture' => (bool) ($s[self::YOOKASSA_AUTO_CAPTURE] ?? true),
+            'webhook_url' => $s[self::YOOKASSA_WEBHOOK_URL] ?? null,
+        ];
+    }
+
+    /**
+     * Получить настройки ЮКасса для отображения в админке (без секретных ключей).
+     */
+    public function getYooKassaConfigForApi(): array
+    {
+        if ($this->payment_method_code !== self::CODE_YOOKASSA) {
+            return [];
+        }
+        $s = $this->settings ?? [];
+        return [
+            'yookassa_shop_id' => $s[self::YOOKASSA_SHOP_ID] ?? '',
+            'yookassa_test_shop_id' => $s[self::YOOKASSA_TEST_SHOP_ID] ?? '',
+            'yookassa_is_test_mode' => (bool) ($s[self::YOOKASSA_IS_TEST_MODE] ?? true),
+            'yookassa_auto_capture' => (bool) ($s[self::YOOKASSA_AUTO_CAPTURE] ?? true),
+            'yookassa_webhook_url' => $s[self::YOOKASSA_WEBHOOK_URL] ?? '',
+            'yookassa_has_secret_key' => !empty($s[self::YOOKASSA_SECRET_KEY]),
+            'yookassa_has_test_secret_key' => !empty($s[self::YOOKASSA_TEST_SECRET_KEY]),
+        ];
+    }
+
+    /**
+     * Сохранить настройки интеграции ЮКасса. Секретные ключи шифруются.
+     */
+    public function setYooKassaConfig(array $input): void
+    {
+        if ($this->payment_method_code !== self::CODE_YOOKASSA) {
+            return;
+        }
+        $s = $this->settings ?? [];
+        if (isset($input['yookassa_shop_id'])) {
+            $s[self::YOOKASSA_SHOP_ID] = trim((string) $input['yookassa_shop_id']) ?: null;
+        }
+        if (isset($input['yookassa_test_shop_id'])) {
+            $s[self::YOOKASSA_TEST_SHOP_ID] = trim((string) $input['yookassa_test_shop_id']) ?: null;
+        }
+        if (array_key_exists('yookassa_is_test_mode', $input)) {
+            $s[self::YOOKASSA_IS_TEST_MODE] = (bool) $input['yookassa_is_test_mode'];
+        }
+        if (array_key_exists('yookassa_auto_capture', $input)) {
+            $s[self::YOOKASSA_AUTO_CAPTURE] = (bool) $input['yookassa_auto_capture'];
+        }
+        if (isset($input['yookassa_webhook_url'])) {
+            $s[self::YOOKASSA_WEBHOOK_URL] = trim((string) $input['yookassa_webhook_url']) ?: null;
+        }
+        $secret = isset($input['yookassa_secret_key']) ? trim((string) $input['yookassa_secret_key']) : null;
+        if ($secret !== null && $secret !== '') {
+            $s[self::YOOKASSA_SECRET_KEY] = Crypt::encryptString($secret);
+        }
+        $testSecret = isset($input['yookassa_test_secret_key']) ? trim((string) $input['yookassa_test_secret_key']) : null;
+        if ($testSecret !== null && $testSecret !== '') {
+            $s[self::YOOKASSA_TEST_SECRET_KEY] = Crypt::encryptString($testSecret);
+        }
+        $this->settings = $s;
+    }
+
+    private function decryptYooKassaSecret(?string $encrypted): ?string
+    {
+        if ($encrypted === null || $encrypted === '') {
+            return null;
+        }
+        try {
+            return Crypt::decryptString($encrypted);
+        } catch (\Throwable $e) {
+            Log::warning('PaymentMethodSetting: failed to decrypt yookassa secret', ['error' => $e->getMessage()]);
+            return null;
+        }
     }
 }
