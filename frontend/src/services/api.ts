@@ -1,4 +1,4 @@
-import type { Category, Product, Shop, PaginatedResponse } from '@/types';
+import type { Category, Product, Shop, PaginatedResponse, Order } from '@/types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://crm.neeklo.ru/api';
 
@@ -114,6 +114,54 @@ export const productApi = {
       `/shops/${shopId}/products?search=${encodeURIComponent(query)}&per_page=100`
     );
     return response.data || [];
+  },
+};
+
+// Получить initData из Telegram Web App (для Mini App)
+export function getTelegramInitData(): string {
+  const tg = (window as any).Telegram?.WebApp;
+  return (tg?.initData ?? '') as string;
+}
+
+// Orders API: по initData (Mini App) или по телефону (fallback)
+export interface CreateOrderPayload {
+  init_data: string;
+  customer_name: string;
+  customer_address?: string;
+  notes?: string;
+  total_amount: number;
+  items: Array<{ product_id: number; quantity: number; price: number }>;
+}
+
+export const ordersApi = {
+  list: async (shopId: number, initData: string): Promise<Order[]> => {
+    if (!initData.trim()) return [];
+    return fetchApi<Order[]>(`/shops/${shopId}/orders`, {
+      headers: { 'X-Telegram-Init-Data': initData },
+    });
+  },
+
+  listByPhone: async (shopId: number, phone: string): Promise<Order[]> => {
+    const digits = phone.replace(/\D/g, '');
+    if (digits.length < 10) return [];
+    return fetchApi<Order[]>(`/shops/${shopId}/orders?phone=${encodeURIComponent(phone)}`);
+  },
+
+  getById: async (shopId: number, orderId: number, initData: string): Promise<Order> => {
+    return fetchApi<Order>(`/shops/${shopId}/orders/${orderId}`, {
+      headers: { 'X-Telegram-Init-Data': initData },
+    });
+  },
+
+  getByIdWithPhone: async (shopId: number, orderId: number, phone: string): Promise<Order> => {
+    return fetchApi<Order>(`/shops/${shopId}/orders/${orderId}?phone=${encodeURIComponent(phone)}`);
+  },
+
+  create: async (shopId: number, payload: CreateOrderPayload): Promise<Order> => {
+    return fetchApi<Order>(`/shops/${shopId}/orders`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
   },
 };
 

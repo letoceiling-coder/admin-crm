@@ -15,6 +15,7 @@ class Order extends Model
     protected $fillable = [
         'user_id',
         'shop_id',
+        'shop_bot_user_id',
         'order_number',
         'customer_name',
         'customer_email',
@@ -61,5 +62,21 @@ class Order extends Model
     public function shop(): BelongsTo
     {
         return $this->belongsTo(Shop::class);
+    }
+
+    /**
+     * Пользователь бота (Mini App), оформивший заказ
+     */
+    public function shopBotUser(): BelongsTo
+    {
+        return $this->belongsTo(ShopBotUser::class, 'shop_bot_user_id');
+    }
+
+    /**
+     * Позиции заказа (товары)
+     */
+    public function items(): HasMany
+    {
+        return $this->hasMany(OrderItem::class, 'order_id');
     }
 }

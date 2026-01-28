@@ -19,6 +19,7 @@ use App\Http\Controllers\Api\DeliverySettingsController;
 use App\Http\Controllers\Api\PaymentMethodSettingsController;
 use App\Http\Controllers\Api\TelegramWebhookController;
 use App\Http\Controllers\Api\ShopBotUserController;
+use App\Http\Controllers\Api\PublicOrderController;
 
 /*
 |--------------------------------------------------------------------------
@@ -48,6 +49,9 @@ Route::get('/shops/slug/{slug}', [ShopController::class, 'getBySlug']);
 Route::get('/shops/{shopId}/categories', [CategoryController::class, 'getByShop']);
 Route::get('/shops/{shopId}/products', [ProductController::class, 'getByShop']);
 Route::get('/products/{product}', [ProductController::class, 'show'])->where('product', '[0-9]+');
+Route::get('/shops/{shopId}/orders', [PublicOrderController::class, 'index']);
+Route::post('/shops/{shopId}/orders', [PublicOrderController::class, 'store']);
+Route::get('/shops/{shopId}/orders/{orderId}', [PublicOrderController::class, 'show'])->where('orderId', '[0-9]+');
 Route::get('/settings/default-image', [SettingsController::class, 'getDefaultImage']);
 
 // Публичные роуты для настроек доставки (для фронтенда)

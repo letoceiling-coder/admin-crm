@@ -7,6 +7,7 @@ import { CartPage } from './pages/CartPage';
 import { CheckoutPage } from './pages/CheckoutPage';
 import { SearchPage } from './pages/SearchPage';
 import { OrdersPage } from './pages/OrdersPage';
+import { OrderDetailPage } from './pages/OrderDetailPage';
 import { AboutPage } from './pages/AboutPage';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { shopApi } from './services/api';
@@ -50,6 +51,7 @@ function AppContent() {
         <Route path="/:shopSlug/cart" element={<CartPage />} />
         <Route path="/:shopSlug/checkout" element={<CheckoutPage />} />
         <Route path="/:shopSlug/orders" element={<OrdersPage />} />
+        <Route path="/:shopSlug/orders/:orderId" element={<OrderDetailPage />} />
         <Route path="/:shopSlug/about" element={<AboutPage />} />
         <Route path="/" element={<Navigate to="/default" replace />} />
       </Routes>

@@ -117,3 +117,30 @@ export interface PaginatedResponse<T> {
   per_page: number;
   total: number;
 }
+
+export type OrderStatus = 'new' | 'pending' | 'processing' | 'completed' | 'cancelled';
+
+export interface OrderItem {
+  id: number;
+  order_id: number;
+  product_id: number;
+  quantity: number;
+  price: string | number;
+  product?: Product;
+}
+
+export interface Order {
+  id: number;
+  shop_id: number;
+  order_number: string;
+  customer_name: string;
+  customer_phone?: string;
+  customer_address?: string;
+  notes?: string;
+  total_amount: string | number;
+  status: OrderStatus;
+  order_date?: string;
+  created_at: string;
+  updated_at: string;
+  items?: OrderItem[];
+}

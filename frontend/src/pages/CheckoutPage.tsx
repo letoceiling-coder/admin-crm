@@ -7,8 +7,8 @@ import { DeliveryModeToggle } from '@/components/DeliveryModeToggle';
 import { useCartStore } from '@/store/cartStore';
 import { useTheme } from '@/contexts/ThemeContext';
 import { CheckCircle } from 'lucide-react';
-import { shopApi, deliverySettingsApi, paymentMethodsApi, type PaymentMethodSetting } from '@/services/api';
-import { cn, formatPhoneMask, validatePhone } from '@/lib/utils';
+import { shopApi, deliverySettingsApi, paymentMethodsApi, ordersApi, getTelegramInitData, type PaymentMethodSetting } from '@/services/api';
+import { cn } from '@/lib/utils';
 
 type DeliveryType = 'pickup' | 'delivery';
 
@@ -253,14 +253,11 @@ export function CheckoutPage() {
     }
   }, [address, deliveryType, totalAmount, shopIdState]);
 
-  // Получаем данные пользователя из Telegram
+  // Имя по умолчанию из Telegram
   useEffect(() => {
-    if ((window as any).Telegram?.WebApp?.initDataUnsafe?.user) {
-      const user = (window as any).Telegram.WebApp.initDataUnsafe.user;
-      setName(`${user.first_name} ${user.last_name || ''}`.trim());
-      if (user.username) {
-        // Можно использовать username как дополнительную информацию
-      }
+    const user = (window as any).Telegram?.WebApp?.initDataUnsafe?.user;
+    if (user) {
+      setName(`${user.first_name || ''} ${user.last_name || ''}`.trim());
     }
   }, []);
 
@@ -282,56 +279,55 @@ export function CheckoutPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Проверка минимальной суммы заказа
+
+    if (!shopIdState) {
+      alert('Магазин не определён');
+      return;
+    }
+    const initData = getTelegramInitData();
+    if (!initData.trim()) {
+      alert('Откройте приложение через Telegram Mini App для оформления заказа');
+      return;
+    }
+
     if (!isMinOrderMet()) {
       const remaining = getRemainingAmount();
       alert(`Минимальная сумма заказа для доставки: ${minDeliveryOrderTotal?.toLocaleString('ru-RU')} ₽\nДобавьте товаров на ${remaining.toLocaleString('ru-RU')} ₽`);
       return;
     }
-    
+
     if (!selectedPaymentMethod) {
       alert('Выберите способ оплаты');
       return;
     }
 
-    if (!validatePhone(phone)) {
-      setPhoneError('Введите корректный номер телефона (10 цифр)');
-      return;
-    }
-    setPhoneError(null);
-    
     setIsSubmitting(true);
 
     try {
-      // TODO: Отправить заказ на бекенд
-      // const response = await orderApi.create({
-      //   shop_id: shopIdState,
-      //   items: items.map(item => ({
-      //     product_id: item.product.id,
-      //     quantity: item.quantity,
-      //   })),
-      //   customer_name: name,
-      //   customer_phone: phone,
-      //   delivery_address: deliveryType === 'delivery' ? address : null,
-      //   delivery_type: deliveryType,
-      //   delivery_cost: deliveryType === 'delivery' ? deliveryCost : null,
-      //   comment: comment,
-      //   total_amount: finalAmount,
-      // });
+      const orderItems = items.map((item) => ({
+        product_id: item.product.id,
+        quantity: item.quantity,
+        price: item.product.price,
+      }));
 
-      // Имитация отправки
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await ordersApi.create(shopIdState, {
+        init_data: initData,
+        customer_name: name.trim(),
+        customer_address: deliveryType === 'delivery' ? address.trim() || undefined : undefined,
+        notes: comment.trim() || undefined,
+        total_amount: Math.round(finalAmount * 100) / 100,
+        items: orderItems,
+      });
 
       setIsSuccess(true);
       clearCart();
 
       setTimeout(() => {
-        navigate(`/${shopSlug}`);
+        navigate(`/${shopSlug}/orders`);
       }, 3000);
     } catch (error) {
       console.error('Ошибка оформления заказа:', error);
-      alert('Ошибка при оформлении заказа. Попробуйте позже.');
+      alert(error instanceof Error ? error.message : 'Ошибка при оформлении заказа. Попробуйте позже.');
     } finally {
       setIsSubmitting(false);
     }
@@ -397,36 +393,6 @@ export function CheckoutPage() {
                   className="w-full px-4 py-3 rounded-xl border-2 border-amber-200 dark:border-amber-900 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
                   placeholder="Ваше имя"
                 />
-              </div>
-
-              <div>
-                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
-                  Телефон *
-                </label>
-                <input
-                  type="tel"
-                  required
-                  value={phone}
-                  onChange={(e) => {
-                    const formatted = formatPhoneMask(e.target.value);
-                    setPhone(formatted);
-                    setPhoneError(null);
-                  }}
-                  onBlur={() => {
-                    if (phone && !validatePhone(phone)) setPhoneError('Введите 10 цифр номера');
-                    else setPhoneError(null);
-                  }}
-                  className={cn(
-                    'w-full px-4 py-3 rounded-xl border-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500',
-                    phoneError ? 'border-red-500 dark:border-red-600' : 'border-amber-200 dark:border-amber-900'
-                  )}
-                  placeholder="+7 (999) 123-45-67"
-                  inputMode="numeric"
-                  autoComplete="tel"
-                />
-                {phoneError && (
-                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{phoneError}</p>
-                )}
               </div>
 
               {deliveryType === 'delivery' && (

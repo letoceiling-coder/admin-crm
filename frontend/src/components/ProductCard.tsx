@@ -166,8 +166,8 @@ export function ProductCard({ product, onClick, variant = 'grid' }: ProductCardP
           {product.description}
         </p>
         
-        <div className="mt-auto pt-2 flex items-center justify-between gap-2 min-w-0">
-          <span className={cn('text-lg font-black bg-gradient-to-r bg-clip-text text-transparent truncate', colors.titleGradient)}>
+        <div className="mt-auto pt-2 flex flex-wrap items-center justify-between gap-x-2 gap-y-2 min-w-0">
+          <span className={cn('text-lg font-black bg-gradient-to-r bg-clip-text text-transparent flex-shrink-0 min-w-0', colors.titleGradient)}>
             {product.price.toLocaleString('ru-RU')} ₽
           </span>
           
@@ -175,7 +175,7 @@ export function ProductCard({ product, onClick, variant = 'grid' }: ProductCardP
             <motion.div
               initial={false}
               animate={{ scale: 1 }}
-              className="flex items-center gap-1 bg-gradient-to-r from-amber-500 to-orange-600 rounded-2xl p-1.5"
+              className="flex items-center gap-1 bg-gradient-to-r from-amber-500 to-orange-600 rounded-2xl p-1.5 flex-shrink-0"
             >
               <motion.button
                 whileHover={{ scale: 1.1 }}
@@ -202,7 +202,7 @@ export function ProductCard({ product, onClick, variant = 'grid' }: ProductCardP
               whileHover={{ scale: 1.1, rotate: 5 }}
               whileTap={{ scale: 0.9 }}
               onClick={handleAddToCart}
-              className={cn('flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-r text-white shadow-2xl flex-shrink-0', colors.buttonGradient)}
+              className={cn('flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-to-r text-white shadow-2xl', colors.buttonGradient)}
               aria-label="Добавить в корзину"
             >
               <Plus className="h-5 w-5" />
